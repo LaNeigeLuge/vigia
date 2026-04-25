@@ -63,6 +63,7 @@ export function createDefaultAppData(): AppData {
   return {
     weeks,
     habits,
+    moods: {},
     allTimeStats: {
       totalTasksCompleted: 0,
       bestWeekCount: 0,
@@ -197,14 +198,12 @@ export function deleteTask(data: AppData, weekKey: string, taskId: string): AppD
   };
 }
 
-export function addHabit(data: AppData, name: string): AppData {
-  const newHabit: Habit = {
-    id: generateId(),
-    name,
-    completions: {},
-    createdAt: new Date().toISOString(),
-  };
-  return { ...data, habits: [...data.habits, newHabit] };
+export function addHabit(data: AppData, habit: Habit): AppData {
+  return { ...data, habits: [...data.habits, habit] };
+}
+
+export function createHabit(name: string): Habit {
+  return { id: generateId(), name, completions: {}, createdAt: new Date().toISOString() };
 }
 
 export function updateHabit(data: AppData, habitId: string, changes: Partial<Habit>): AppData {

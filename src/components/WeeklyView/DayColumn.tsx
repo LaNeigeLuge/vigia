@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { Task } from '../../types';
 import { DonutChart } from '../ui/DonutChart';
 import { TaskRow } from './TaskRow';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
 interface DayColumnProps {
   dayLabel: string;
@@ -25,7 +25,8 @@ export function DayColumn({
   dayLabel, dayNumber, monthLabel, dayKey,
   isToday, isPast, isReadOnly, tasks, weekKey,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onConfetti,
-}: DayColumnProps) {
+}: Readonly<DayColumnProps>) {
+  const { dark, T } = useTheme();
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -45,17 +46,10 @@ export function DayColumn({
     setAddingTask(false);
   };
 
-  // Header accent: today = emerald glow, past = muted, future = sage
-  const headerBg = isToday
-    ? 'rgba(107,155,127,0.25)'
-    : isPast
-      ? 'rgba(245,241,232,0.05)'
-      : 'rgba(245,241,232,0.08)';
-
-  const headerBorder = isToday
-    ? `1px solid rgba(107,155,127,0.5)`
-    : `1px solid ${T.glassBorder}`;
-
+  const todayHeaderBg = dark ? 'rgba(107,155,127,0.22)' : 'rgba(74,124,89,0.12)';
+  const normalHeaderBg = dark ? 'rgba(245,241,232,0.05)' : 'rgba(74,124,89,0.04)';
+  const headerBg = isToday ? todayHeaderBg : normalHeaderBg;
+  const headerBorder = isToday ? `1px solid ${T.glassBorderEm}` : `1px solid ${T.glassBorder}`;
   const colOpacity = isPast && !isToday ? 0.65 : 1;
 
   return (
@@ -73,20 +67,15 @@ export function DayColumn({
       <div
         style={{
           background: headerBg,
-          border: headerBorder,
-          borderTop: 'none',
-          borderLeft: 'none',
-          borderRight: 'none',
+          borderBottom: headerBorder,
           padding: '7px 8px',
           textAlign: 'center',
-          boxShadow: isToday ? `0 2px 16px rgba(107,155,127,0.2)` : 'none',
         }}
       >
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontWeight: 700, fontSize: 13,
           color: isToday ? T.emerald : T.textPrimary,
-          textShadow: isToday ? T.glowEm : 'none',
         }}>
           {dayLabel}
         </div>
@@ -121,7 +110,7 @@ export function DayColumn({
 
         {/* Add task */}
         {!isReadOnly && (
-          <div style={{ borderBottom: `1px solid rgba(245,241,232,0.05)` }}>
+          <div style={{ borderBottom: `1px solid ${T.rowBorder}` }}>
             {addingTask ? (
               <div style={{ padding: '4px 8px' }}>
                 <input

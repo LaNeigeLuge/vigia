@@ -8,7 +8,7 @@ import {
   getWeekDays, isDatePast, isDateToday, parseDayKey,
 } from '../../utils/dateUtils';
 import { getDayTasks } from '../../utils/dataUtils';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
 interface WeeklyViewProps {
   data: AppData;
@@ -22,7 +22,8 @@ interface WeeklyViewProps {
 export function WeeklyView({
   data, currentWeekKey,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask,
-}: WeeklyViewProps) {
+}: Readonly<WeeklyViewProps>) {
+  const { T } = useTheme();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayColRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,7 @@ export function WeeklyView({
       origin: { y: 0.5 },
       colors: [T.emerald, '#a8d5b0', T.amber, T.aqua, T.sage],
     });
-  }, []);
+  }, [T]);
 
   const navigateWeek = (dir: -1 | 1) => {
     const next = formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7));
@@ -81,7 +82,7 @@ export function WeeklyView({
           {!isCurrentWeek && (
             <span style={{
               marginLeft: 10, fontSize: 10, color: T.textMuted,
-              background: 'rgba(245,241,232,0.07)',
+              background: T.trackBg,
               padding: '2px 7px', borderRadius: 2,
             }}>
               Read-only
@@ -95,7 +96,7 @@ export function WeeklyView({
           <button
             onClick={() => setViewWeekKey(currentWeekKey)}
             style={{
-              background: 'rgba(107,155,127,0.15)',
+              background: T.rowHoverBg,
               border: `1px solid ${T.glassBorderEm}`,
               color: T.emerald, padding: '4px 12px',
               cursor: 'pointer', fontSize: 11, fontWeight: 600,
@@ -155,20 +156,21 @@ export function WeeklyView({
   );
 }
 
-function NavBtn({ onClick, disabled = false, children }: {
+function NavBtn({ onClick, disabled = false, children }: Readonly<{
   onClick: () => void; disabled?: boolean; children: React.ReactNode;
-}) {
+}>) {
+  const { T } = useTheme();
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       style={{
-        background: disabled ? 'transparent' : 'rgba(107,155,127,0.1)',
+        background: disabled ? 'transparent' : T.rowHoverBg,
         border: `1px solid ${disabled ? T.glassBorder : T.glassBorderEm}`,
         color: disabled ? T.textMuted : T.emerald,
         width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
         fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 2, transition: 'all 0.2s',
+        borderRadius: 2, transition: 'all 0.18s',
       }}
     >
       {children}

@@ -1,5 +1,5 @@
 import type { Section } from '../../types';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
 interface BottomNavProps {
   activeSection: Section;
@@ -13,15 +13,17 @@ const sections: { id: Section; label: string; icon: string }[] = [
   { id: 'stats',     label: 'Stats',     icon: '↑' },
 ];
 
-export function BottomNav({ activeSection, onSectionChange }: BottomNavProps) {
+export function BottomNav({ activeSection, onSectionChange }: Readonly<BottomNavProps>) {
+  const { T } = useTheme();
+
   return (
     <nav
       style={{
         position: 'fixed',
         bottom: 0, left: 0, right: 0,
-        background: 'rgba(10,15,10,0.92)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
+        background: T.navBg,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderTop: `1px solid ${T.glassBorder}`,
         display: 'flex',
         height: 58,
@@ -36,7 +38,7 @@ export function BottomNav({ activeSection, onSectionChange }: BottomNavProps) {
             onClick={() => onSectionChange(s.id)}
             style={{
               flex: 1,
-              background:  isActive ? 'rgba(107,155,127,0.12)' : 'transparent',
+              background:  isActive ? T.rowHoverBg : 'transparent',
               color:       isActive ? T.emerald : T.textMuted,
               border:      'none',
               borderTop:   isActive ? `2px solid ${T.emerald}` : '2px solid transparent',
@@ -49,8 +51,7 @@ export function BottomNav({ activeSection, onSectionChange }: BottomNavProps) {
               fontSize:    10,
               fontFamily:  'DM Sans, sans-serif',
               fontWeight:  isActive ? 600 : 400,
-              transition:  'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-              textShadow:  isActive ? T.glowEm : 'none',
+              transition:  'all 0.18s ease',
             }}
           >
             <span style={{ fontSize: 17 }}>{s.icon}</span>

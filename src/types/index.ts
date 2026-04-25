@@ -18,9 +18,13 @@ export interface WeekData {
   tasks: Task[];
 }
 
+// 1 = pas ouf … 5 = super
+export type MoodValue = 1 | 2 | 3 | 4 | 5;
+
 export interface AppData {
   weeks: Record<string, WeekData>;
   habits: Habit[];
+  moods: Record<string, MoodValue>; // 'YYYY-MM-DD' -> MoodValue
   allTimeStats: {
     totalTasksCompleted: number;
     bestWeekCount: number;

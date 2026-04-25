@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AppData, Habit } from '../../types';
-import { T } from '../../theme';
 import { ProgressBar } from '../ui/ProgressBar';
 import { formatDayKey, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
+import { useTheme } from '../../ThemeContext';
+
+const ease = [0.4, 0, 0.2, 1] as const;
 
 interface HabitTrackerProps {
   data: AppData;
@@ -15,11 +17,12 @@ interface HabitTrackerProps {
   onToggleHabit: (habitId: string, dayKey: string) => void;
 }
 
-function HabitNameCell({ habit, onUpdate, onDelete }: {
+function HabitNameCell({ habit, onUpdate, onDelete }: Readonly<{
   habit: Habit;
   onUpdate: (name: string) => void;
   onDelete: () => void;
-}) {
+}>) {
+  const { T } = useTheme();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(habit.name);
   const [hovered, setHovered] = useState(false);
@@ -88,7 +91,8 @@ function HabitNameCell({ habit, onUpdate, onDelete }: {
 export function HabitTracker({
   data, currentWeekKey,
   onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
-}: HabitTrackerProps) {
+}: Readonly<HabitTrackerProps>) {
+  const { T } = useTheme();
   const [addingHabit, setAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -106,8 +110,8 @@ export function HabitTracker({
   const border = `1px solid ${T.glassBorder}`;
 
   const thStyle: React.CSSProperties = {
-    background: 'rgba(107,155,127,0.15)',
-    borderBottom: `1px solid rgba(107,155,127,0.3)`,
+    background: T.rowHoverBg,
+    borderBottom: `1px solid ${T.glassBorderEm}`,
     padding: '7px 8px',
     textAlign: 'center',
     fontSize: 11,
@@ -123,7 +127,7 @@ export function HabitTracker({
       <div style={{ minWidth: 620 }}>
 
         {/* Header row */}
-        <div style={{ display: 'flex', borderBottom: `2px solid rgba(107,155,127,0.3)` }}>
+        <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
           <div style={{ ...thStyle, minWidth: 172, maxWidth: 172, textAlign: 'left', paddingLeft: 10 }}>
             Habit
           </div>
@@ -143,15 +147,19 @@ export function HabitTracker({
         {data.habits.map((habit, idx) => {
           const { done, total } = getHabitWeekCompletion(habit, currentWeekKey);
           const streak = getHabitStreak(habit);
-          const rowBg = idx % 2 === 0 ? T.glassBg : 'rgba(245,241,232,0.05)';
-          const streakColor = streak >= 7 ? T.emerald : streak >= 4 ? T.sage : streak >= 1 ? T.aqua : T.textMuted;
+          const rowBg = idx % 2 === 0 ? T.glassBg : T.oddRowBg;
+
+          let streakColor = T.textMuted;
+          if (streak >= 7) streakColor = T.emerald;
+          else if (streak >= 4) streakColor = T.sage;
+          else if (streak >= 1) streakColor = T.aqua;
 
           return (
             <motion.div
               key={habit.id}
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.35, ease: T.ease }}
+              transition={{ duration: 0.35, ease }}
               style={{ display: 'flex', alignItems: 'center', borderBottom: border, background: rowBg }}
             >
               {/* Name */}
@@ -178,7 +186,7 @@ export function HabitTracker({
                       minWidth: 46, height: 38,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRight: border,
-                      background: checked ? 'rgba(107,155,127,0.12)' : 'transparent',
+                      background: checked ? T.checkedCellBg : 'transparent',
                       transition: 'background 0.2s',
                     }}
                   >
@@ -207,7 +215,6 @@ export function HabitTracker({
                 textAlign: 'center', fontSize: 12,
                 fontWeight: 700, color: streakColor,
                 fontFamily: 'Syne, sans-serif',
-                textShadow: streak > 0 ? `0 0 12px ${streakColor}66` : 'none',
               }}>
                 {streak > 0 ? `🔥 ${streak}` : '—'}
               </div>

@@ -10,21 +10,24 @@ import {
   getDayCompletionRate, getDayLevel, getHabitStreak,
   getHabitWeekCompletion, getLastFourWeekStarts, getWeekCompletionRate,
 } from '../../utils/dataUtils';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
+
+const ease = [0.4, 0, 0.2, 1] as const;
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.55, delay, ease } },
+});
 
 interface StatsProps {
   data: AppData;
   currentWeekKey: string;
 }
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.55, delay, ease: T.ease } },
-});
-
-function BigStat({ label, value, sub, accent = T.emerald }: {
+function BigStat({ label, value, sub, accent }: Readonly<{
   label: string; value: string | number; sub?: string; accent?: string;
-}) {
+}>) {
+  const { T } = useTheme();
+  const color = accent ?? T.emerald;
   return (
     <div
       className="glass glass-hover"
@@ -33,7 +36,7 @@ function BigStat({ label, value, sub, accent = T.emerald }: {
       <div style={{
         fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
         textTransform: 'uppercase', letterSpacing: '0.1em',
-        color: accent, marginBottom: 8, textShadow: `0 0 12px ${accent}55`,
+        color, marginBottom: 8,
       }}>
         {label}
       </div>
@@ -50,22 +53,25 @@ function BigStat({ label, value, sub, accent = T.emerald }: {
   );
 }
 
-function BlockHeader({ children }: { children: React.ReactNode }) {
+function BlockHeader({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { T } = useTheme();
   return (
     <div style={{
-      background: 'rgba(107,155,127,0.12)',
-      borderBottom: `1px solid rgba(107,155,127,0.25)`,
+      background: T.rowHoverBg,
+      borderBottom: `1px solid ${T.glassBorderEm}`,
       padding: '6px 14px',
       fontFamily: 'Syne, sans-serif', fontWeight: 700,
       fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em',
-      color: T.emerald, textShadow: T.glowEm,
+      color: T.emerald,
     }}>
       {children}
     </div>
   );
 }
 
-export function Stats({ data, currentWeekKey }: StatsProps) {
+export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
+  const { T } = useTheme();
+
   const { done: thisDone, total: thisTotal } = getWeekCompletionRate(data, currentWeekKey);
   const thisPct = thisTotal === 0 ? 0 : Math.round((thisDone / thisTotal) * 100);
 
@@ -97,20 +103,28 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
   });
 
   const levelColors: Record<string, string> = {
-    'Beast Mode': T.emerald,
-    'On Fire':    T.sage,
+    'Beast Mode':    T.emerald,
+    'On Fire':       T.sage,
     'Getting There': T.aqua,
-    'Slow Start': T.amber,
-    'No tasks':   T.textMuted,
+    'Slow Start':    T.amber,
+    'No tasks':      T.textMuted,
   };
 
   const border = `1px solid ${T.glassBorder}`;
+
   const barColors = [
-    `rgba(107,155,127,0.35)`,
-    `rgba(107,155,127,0.5)`,
-    `rgba(107,155,127,0.7)`,
+    T.trackBg,
+    T.aqua,
+    T.sage,
     T.emerald,
   ];
+
+  let deltaAccent = T.textMuted;
+  if (delta > 0) deltaAccent = T.emerald;
+  else if (delta < 0) deltaAccent = T.amber;
+
+  const deltaSign = delta > 0 ? '+' : '';
+  const deltaValue = delta === 0 ? '—' : `${deltaSign}${delta}%`;
 
   return (
     <div style={{ padding: '20px', maxWidth: 920, margin: '0 auto' }}>
@@ -120,9 +134,9 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
         <BigStat label="This Week"     value={`${thisPct}%`} sub={`${thisDone} / ${thisTotal} tasks`} />
         <BigStat
           label="vs Last Week"
-          value={delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}%`}
+          value={deltaValue}
           sub={`Last: ${lastPct}% (${lastDone}/${lastTotal})`}
-          accent={delta > 0 ? T.emerald : delta < 0 ? T.amber : T.textMuted}
+          accent={deltaAccent}
         />
         <BigStat label="Best Week"     value={data.allTimeStats.bestWeekCount || '—'} sub="tasks in one week" accent={T.amber} />
         <BigStat label="All-Time"      value={data.allTimeStats.totalTasksCompleted} sub="tasks completed" accent={T.sage} />
@@ -148,10 +162,7 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11, color: T.emerald, marginBottom: 5 }}>
                   {label}
                 </div>
-                <div style={{
-                  fontSize: 22, fontWeight: 800, fontFamily: 'Syne, sans-serif',
-                  color: col, textShadow: `0 0 14px ${col}55`,
-                }}>
+                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne, sans-serif', color: col }}>
                   {pct}%
                 </div>
                 <div style={{ fontSize: 10, color: T.textMuted, margin: '3px 0' }}>{done}/{total}</div>
@@ -175,7 +186,7 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={habitChartData} margin={{ top: 4, right: 8, bottom: 28, left: -24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,241,232,0.06)" />
+                <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="name" tick={{ fontSize: 10, fill: T.textMuted, fontFamily: 'DM Sans' }}
                   interval={0} angle={-18} textAnchor="end" height={40}
@@ -188,10 +199,11 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
                 <Tooltip
                   formatter={(v, name) => [`${v ?? 0}%`, `Week ${String(name).slice(1)}`]}
                   contentStyle={{
-                    background: 'rgba(10,15,10,0.92)', border: `1px solid ${T.glassBorder}`,
-                    fontSize: 11, color: T.textPrimary, backdropFilter: 'blur(12px)',
+                    background: T.tooltipBg,
+                    border: `1px solid ${T.tooltipBorder}`,
+                    fontSize: 11, color: T.textPrimary,
                   }}
-                  cursor={{ fill: 'rgba(107,155,127,0.06)' }}
+                  cursor={{ fill: T.rowHoverBg }}
                 />
                 {['w1', 'w2', 'w3', 'w4'].map((wk, i) => (
                   <Bar key={wk} dataKey={wk} fill={barColors[i]} maxBarSize={18} radius={[2, 2, 0, 0]} />
@@ -205,24 +217,20 @@ export function Stats({ data, currentWeekKey }: StatsProps) {
       {/* Habit streaks grid */}
       <motion.div {...fadeUp(0.3)} className="glass" style={{ borderRadius: 2 }}>
         <BlockHeader>Current Habit Streaks</BlockHeader>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-        }}>
-          {data.habits.map((h, i) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
+          {data.habits.map((h) => {
             const streak = getHabitStreak(h);
-            const col = streak >= 7 ? T.emerald : streak >= 4 ? T.sage : streak >= 1 ? T.aqua : T.textMuted;
+            let col = T.textMuted;
+            if (streak >= 7) col = T.emerald;
+            else if (streak >= 4) col = T.sage;
+            else if (streak >= 1) col = T.aqua;
             return (
-              <div key={i} style={{
+              <div key={h.id} style={{
                 padding: '10px 14px', borderRight: border, borderBottom: border,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontSize: 12, color: T.textSecondary }}>{h.name}</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 700, fontFamily: 'Syne, sans-serif',
-                  color: col, marginLeft: 8,
-                  textShadow: streak > 0 ? `0 0 10px ${col}55` : 'none',
-                }}>
+                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Syne, sans-serif', color: col, marginLeft: 8 }}>
                   {streak > 0 ? `🔥 ${streak}` : '—'}
                 </span>
               </div>

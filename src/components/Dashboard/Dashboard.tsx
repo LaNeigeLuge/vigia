@@ -2,28 +2,32 @@ import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import type { AppData } from '../../types';
+import type { AppData, MoodValue } from '../../types';
 import { DonutChart } from '../ui/DonutChart';
 import { ProgressBar } from '../ui/ProgressBar';
+import { MoodPicker } from './MoodPicker';
 import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getDailyQuote, getDayCompletionRate, getHabitStreak, getWeekCompletionRate } from '../../utils/dataUtils';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
+const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease: T.ease } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease } },
 });
 
 interface DashboardProps {
   data: AppData;
   currentWeekKey: string;
+  onSetMood: (dayKey: string, mood: MoodValue) => void;
 }
 
-function GlassPanel({ children, style = {}, className = '' }: {
+function GlassPanel({ children, style = {}, className = '' }: Readonly<{
   children: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
-}) {
+}>) {
+  const { T } = useTheme();
   return (
     <div
       className={`glass ${className}`}
@@ -34,7 +38,8 @@ function GlassPanel({ children, style = {}, className = '' }: {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { T } = useTheme();
   return (
     <div style={{
       fontFamily: 'Syne, sans-serif',
@@ -44,30 +49,40 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       letterSpacing: '0.12em',
       color: T.emerald,
       marginBottom: 12,
-      textShadow: T.glowEm,
     }}>
       {children}
     </div>
   );
 }
 
-export function Dashboard({ data, currentWeekKey }: DashboardProps) {
+export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<DashboardProps>) {
+  const { T } = useTheme();
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
   const { done, total } = getWeekCompletionRate(data, currentWeekKey);
   const quote = getDailyQuote();
+  const todayKey = formatDayKey(new Date());
 
   const barData = weekDays.map((day) => {
     const dayKey = formatDayKey(day);
-    const { done } = getDayCompletionRate(data, currentWeekKey, dayKey);
-    return { day: getDayLabel(day), tasks: done };
+    const { done: d } = getDayCompletionRate(data, currentWeekKey, dayKey);
+    return { day: getDayLabel(day), tasks: d };
   });
 
   return (
-    <div style={{ padding: '20px 20px', maxWidth: 920, margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: 920, margin: '0 auto' }}>
+
+      {/* Mood picker */}
+      <motion.div {...fadeUp(0)}>
+        <MoodPicker
+          todayKey={todayKey}
+          currentMood={data.moods[todayKey]}
+          onSetMood={onSetMood}
+        />
+      </motion.div>
 
       {/* Week label */}
-      <motion.div {...fadeUp(0)} style={{ marginBottom: 16 }}>
+      <motion.div {...fadeUp(0.05)} style={{ marginBottom: 16 }}>
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontWeight: 700,
@@ -97,7 +112,7 @@ export function Dashboard({ data, currentWeekKey }: DashboardProps) {
           <SectionLabel>Tasks Completed per Day</SectionLabel>
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={barData} margin={{ top: 4, right: 8, bottom: 0, left: -28 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,241,232,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="day"
                 tick={{ fontSize: 11, fill: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}
@@ -112,15 +127,14 @@ export function Dashboard({ data, currentWeekKey }: DashboardProps) {
               />
               <Tooltip
                 contentStyle={{
-                  background: 'rgba(10,15,10,0.92)',
-                  border: `1px solid ${T.glassBorder}`,
+                  background: T.tooltipBg,
+                  border: `1px solid ${T.tooltipBorder}`,
                   borderRadius: 4,
                   fontSize: 12,
                   color: T.textPrimary,
-                  backdropFilter: 'blur(12px)',
                 }}
                 formatter={(v) => [v ?? 0, 'Tasks done']}
-                cursor={{ fill: 'rgba(107,155,127,0.06)' }}
+                cursor={{ fill: T.rowHoverBg }}
               />
               <Bar dataKey="tasks" fill={T.emerald} radius={[3, 3, 0, 0]} maxBarSize={28} />
             </BarChart>
@@ -152,7 +166,9 @@ export function Dashboard({ data, currentWeekKey }: DashboardProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {data.habits.slice(0, 5).map((habit) => {
               const streak = getHabitStreak(habit);
-              const barColor = streak >= 5 ? T.emerald : streak >= 3 ? T.sage : T.aqua;
+              let barColor = T.aqua;
+              if (streak >= 5) barColor = T.emerald;
+              else if (streak >= 3) barColor = T.sage;
               return (
                 <div key={habit.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{

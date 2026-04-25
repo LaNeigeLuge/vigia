@@ -1,48 +1,10 @@
 @import "tailwindcss";
 
-/* ─── DA Design Tokens ──────────────────────────────────── */
-:root {
-  /* Background */
-  --bg:              #0a0f0a;
-
-  /* Palette */
-  --emerald:         #6B9B7F;
-  --emerald-glow:    rgba(74, 222, 128, 0.35);
-  --amber:           #D4A574;
-  --sage:            #8BAA93;
-  --aqua:            #A8C5C0;
-  --cream:           #F5F1E8;
-
-  /* Glass surfaces */
-  --glass-bg:        rgba(245, 241, 232, 0.08);
-  --glass-bg-hover:  rgba(245, 241, 232, 0.15);
-  --glass-border:    rgba(245, 241, 232, 0.12);
-  --glass-border-hover: rgba(107, 155, 127, 0.5);
-
-  /* Text */
-  --text-primary:    rgba(255, 255, 255, 0.95);
-  --text-secondary:  rgba(255, 255, 255, 0.7);
-  --text-muted:      rgba(255, 255, 255, 0.45);
-
-  /* Shadows */
-  --shadow-sm:       0 8px 32px rgba(107, 155, 127, 0.15);
-  --shadow-lg:       0 16px 48px rgba(107, 155, 127, 0.25);
-
-  /* Easing */
-  --ease-da:         cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Typography */
-  --font-heading:    'Syne', system-ui, sans-serif;
-  --font-body:       'DM Sans', system-ui, sans-serif;
-}
-
 /* ─── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: var(--font-body);
-  background: var(--bg);
-  color: var(--text-primary);
+  font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
@@ -53,33 +15,46 @@ body {
 }
 
 /* ─── Grid pattern overlay ───────────────────────────────── */
-.bg-grid {
+.bg-grid-light {
   background-image:
-    linear-gradient(rgba(107,155,127,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(107,155,127,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(74,124,89,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,124,89,0.04) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
-/* ─── Glass morphism ─────────────────────────────────────── */
+.bg-grid-dark {
+  background-image:
+    linear-gradient(rgba(107,155,127,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(107,155,127,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ─── Glass — light mode (default) ──────────────────────── */
 .glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(74,124,89,0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ─── Glass — dark mode ──────────────────────────────────── */
+.dark .glass {
+  background: rgba(245,241,232,0.06);
+  border: 1px solid rgba(245,241,232,0.10);
 }
 
 .glass-hover {
-  transition: background 0.25s var(--ease-da),
-              border-color 0.25s var(--ease-da),
-              transform 0.25s var(--ease-da),
-              box-shadow 0.25s var(--ease-da);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
 .glass-hover:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255,255,255,1);
+  border-color: rgba(74,124,89,0.3);
+  box-shadow: 0 2px 12px rgba(74,124,89,0.1);
+}
+.dark .glass-hover:hover {
+  background: rgba(245,241,232,0.12);
+  border-color: rgba(107,155,127,0.35);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
 
 /* ─── Inline edit reset ──────────────────────────────────── */
@@ -94,7 +69,7 @@ body {
   padding: 0;
 }
 .inline-edit:focus {
-  border-bottom: 1px solid var(--emerald);
+  border-bottom: 1px solid #4a7c59;
 }
 
 /* ─── Task done ──────────────────────────────────────────── */
@@ -109,21 +84,25 @@ body {
   40%  { transform: scale(1.4); }
   100% { transform: scale(1); }
 }
-.check-animate { animation: checkPop 0.25s var(--ease-da); }
+.check-animate { animation: checkPop 0.25s cubic-bezier(0.4,0,0.2,1); }
 
 /* ─── Weekly scroll ──────────────────────────────────────── */
 .weekly-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .weekly-scroll::-webkit-scrollbar { height: 4px; }
 .weekly-scroll::-webkit-scrollbar-track { background: transparent; }
-.weekly-scroll::-webkit-scrollbar-thumb { background: var(--emerald); border-radius: 2px; }
+.weekly-scroll::-webkit-scrollbar-thumb { background: rgba(74,124,89,0.3); border-radius: 2px; }
 
 /* ─── Scrollbar global ───────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(107,155,127,0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(74,124,89,0.25); border-radius: 3px; }
 
-/* ─── Recharts dark overrides ────────────────────────────── */
+/* ─── Recharts overrides — light ─────────────────────────── */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
+  stroke: rgba(74,124,89,0.08) !important;
+}
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
   stroke: rgba(245,241,232,0.06) !important;
 }

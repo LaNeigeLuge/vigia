@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Task } from '../../types';
-import { T } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
 interface TaskRowProps {
   task: Task;
@@ -10,7 +10,8 @@ interface TaskRowProps {
   onDelete: () => void;
 }
 
-export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: TaskRowProps) {
+export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: Readonly<TaskRowProps>) {
+  const { T } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [hovered, setHovered] = useState(false);
@@ -47,8 +48,8 @@ export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: 
         alignItems: 'center',
         gap: 6,
         padding: '4px 8px',
-        borderBottom: `1px solid rgba(245,241,232,0.06)`,
-        background: hovered && !task.completed ? 'rgba(107,155,127,0.06)' : 'transparent',
+        borderBottom: `1px solid ${T.rowBorder}`,
+        background: hovered && !task.completed ? T.rowHoverBg : 'transparent',
         transition: 'background 0.15s',
       }}
     >

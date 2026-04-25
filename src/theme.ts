@@ -1,26 +1,93 @@
-// DA design tokens as JS constants for inline styles
-export const T = {
-  bg:            '#0a0f0a',
+export interface ThemeTokens {
+  bg: string;
+  navBg: string;
+  emerald: string;
+  emeraldDark: string;
+  amber: string;
+  sage: string;
+  aqua: string;
+  cream: string;
+  glassBg: string;
+  glassBgHover: string;
+  glassBorder: string;
+  glassBorderEm: string;
+  trackBg: string;
+  rowBorder: string;
+  rowHoverBg: string;
+  checkedCellBg: string;
+  oddRowBg: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  shadowSm: string;
+  shadowLg: string;
+  glowEm: string;
+  tooltipBg: string;
+  tooltipBorder: string;
+  ease: [number, number, number, number];
+}
+
+const light: ThemeTokens = {
+  bg:            '#f5f7f4',
+  navBg:         'rgba(255,255,255,0.94)',
+  emerald:       '#4a7c59',
+  emeraldDark:   '#2d5a3d',
+  amber:         '#b07d52',
+  sage:          '#6a9a78',
+  aqua:          '#6a9e98',
+  cream:         '#f0ede6',
+  glassBg:       'rgba(255,255,255,0.92)',
+  glassBgHover:  'rgba(255,255,255,1)',
+  glassBorder:   'rgba(74,124,89,0.15)',
+  glassBorderEm: 'rgba(74,124,89,0.4)',
+  trackBg:       'rgba(74,124,89,0.10)',
+  rowBorder:     'rgba(74,124,89,0.10)',
+  rowHoverBg:    'rgba(74,124,89,0.05)',
+  checkedCellBg: 'rgba(74,124,89,0.10)',
+  oddRowBg:      'rgba(74,124,89,0.03)',
+  textPrimary:   '#1a2e23',
+  textSecondary: 'rgba(26,46,35,0.72)',
+  textMuted:     'rgba(26,46,35,0.42)',
+  shadowSm:      '0 1px 6px rgba(74,124,89,0.08)',
+  shadowLg:      '0 4px 20px rgba(74,124,89,0.12)',
+  glowEm:        'none',
+  tooltipBg:     'rgba(248,249,245,0.98)',
+  tooltipBorder: 'rgba(74,124,89,0.18)',
+  ease:          [0.4, 0, 0.2, 1],
+};
+
+const dark: ThemeTokens = {
+  bg:            '#0f1510',
+  navBg:         'rgba(10,15,10,0.90)',
   emerald:       '#6B9B7F',
   emeraldDark:   '#4a7c59',
   amber:         '#D4A574',
   sage:          '#8BAA93',
   aqua:          '#A8C5C0',
   cream:         '#F5F1E8',
+  glassBg:       'rgba(245,241,232,0.06)',
+  glassBgHover:  'rgba(245,241,232,0.12)',
+  glassBorder:   'rgba(245,241,232,0.10)',
+  glassBorderEm: 'rgba(107,155,127,0.40)',
+  trackBg:       'rgba(245,241,232,0.08)',
+  rowBorder:     'rgba(245,241,232,0.07)',
+  rowHoverBg:    'rgba(107,155,127,0.07)',
+  checkedCellBg: 'rgba(107,155,127,0.12)',
+  oddRowBg:      'rgba(245,241,232,0.03)',
+  textPrimary:   'rgba(255,255,255,0.92)',
+  textSecondary: 'rgba(255,255,255,0.65)',
+  textMuted:     'rgba(255,255,255,0.40)',
+  shadowSm:      '0 4px 20px rgba(0,0,0,0.25)',
+  shadowLg:      '0 8px 40px rgba(0,0,0,0.35)',
+  glowEm:        'none',
+  tooltipBg:     'rgba(10,15,10,0.95)',
+  tooltipBorder: 'rgba(107,155,127,0.25)',
+  ease:          [0.4, 0, 0.2, 1],
+};
 
-  glassBg:       'rgba(245,241,232,0.08)',
-  glassBgHover:  'rgba(245,241,232,0.15)',
-  glassBorder:   'rgba(245,241,232,0.12)',
-  glassBorderEm: 'rgba(107,155,127,0.5)',
+export function getT(isDark: boolean): ThemeTokens {
+  return isDark ? dark : light;
+}
 
-  textPrimary:   'rgba(255,255,255,0.95)',
-  textSecondary: 'rgba(255,255,255,0.70)',
-  textMuted:     'rgba(255,255,255,0.45)',
-
-  shadowSm:      '0 8px 32px rgba(107,155,127,0.15)',
-  shadowLg:      '0 16px 48px rgba(107,155,127,0.25)',
-  glowEm:        '0 0 20px rgba(74,222,128,0.3)',
-  glowLg:        '0 0 40px rgba(74,222,128,0.2)',
-
-  ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
-} as const;
+// Module-level constant (ease only — components use useTheme() for colors)
+export const T = light;
