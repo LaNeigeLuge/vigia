@@ -6,6 +6,7 @@ import {
   dbAddHabit, dbUpdateHabitName, dbDeleteHabit,
   dbCheckHabitLog, dbUncheckHabitLog,
   dbSetMood,
+  dbAddTodo, dbToggleTodo, dbDeleteTodo,
 } from '../lib/db';
 import { updateTask, deleteTask, addHabit, updateHabit, deleteHabit, toggleHabit, createDefaultAppData } from '../utils/dataUtils';
 import { getWeekStartKey } from '../utils/dateUtils';
@@ -96,10 +97,33 @@ export function useAppData(userId: string) {
     dbSetMood(userId, dayKey, mood).catch(console.error);
   }, [userId]);
 
+  // ─── Todos ─────────────────────────────────────────────────────────────────
+
+  const handleAddTodo = useCallback((text: string) => {
+    dbAddTodo(userId, text)
+      .then((todo) => setData((d) => ({ ...d, todos: [...d.todos, todo] })))
+      .catch(console.error);
+  }, [userId]);
+
+  const handleToggleTodo = useCallback((todoId: string) => {
+    setData((d) => {
+      const todo = d.todos.find((t) => t.id === todoId);
+      if (!todo) return d;
+      dbToggleTodo(todoId, !todo.completed).catch(console.error);
+      return { ...d, todos: d.todos.map((t) => t.id === todoId ? { ...t, completed: !t.completed } : t) };
+    });
+  }, []);
+
+  const handleDeleteTodo = useCallback((todoId: string) => {
+    setData((d) => ({ ...d, todos: d.todos.filter((t) => t.id !== todoId) }));
+    dbDeleteTodo(todoId).catch(console.error);
+  }, []);
+
   return {
     data, loading, error, currentWeekKey,
     handleAddTask, handleUpdateTask, handleDeleteTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood,
+    handleAddTodo, handleToggleTodo, handleDeleteTodo,
   };
 }

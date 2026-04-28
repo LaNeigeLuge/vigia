@@ -66,6 +66,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
     handleAddTask, handleUpdateTask, handleDeleteTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood,
+    handleAddTodo, handleToggleTodo, handleDeleteTodo,
   } = useAppData(userId);
 
   const toggleTask = (weekKey: string, taskId: string) => {
@@ -127,6 +128,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
                 data={data} currentWeekKey={currentWeekKey}
                 onAddTask={handleAddTask} onToggleTask={toggleTask}
                 onUpdateTask={updateTaskText} onDeleteTask={handleDeleteTask}
+                onAddTodo={handleAddTodo} onToggleTodo={handleToggleTodo} onDeleteTodo={handleDeleteTodo}
               />
             )}
             {section === 'habits' && (

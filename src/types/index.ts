@@ -18,12 +18,20 @@ export interface WeekData {
   tasks: Task[];
 }
 
+export interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: string;
+}
+
 // 1 = pas ouf … 5 = super
 export type MoodValue = 1 | 2 | 3 | 4 | 5;
 
 export interface AppData {
   weeks: Record<string, WeekData>;
   habits: Habit[];
+  todos: Todo[];
   moods: Record<string, MoodValue>; // 'YYYY-MM-DD' -> MoodValue
   allTimeStats: {
     totalTasksCompleted: number;

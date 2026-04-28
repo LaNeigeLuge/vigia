@@ -34,6 +34,7 @@ export function createDefaultAppData(): AppData {
   return {
     weeks: { [weekKey]: { weekStart: weekKey, tasks: [] } },
     habits: [],
+    todos: [],
     moods: {},
     allTimeStats: {
       totalTasksCompleted: 0,

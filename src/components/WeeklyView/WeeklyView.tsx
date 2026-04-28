@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import type { AppData } from '../../types';
+import type { AppData, Todo } from '../../types';
 import { DayColumn } from './DayColumn';
+import { Backlog } from './Backlog';
 import {
   addDays, formatWeekLabel, formatDayKey,
   getDayLabel, getDayNumber, getMonthLabel,
@@ -17,11 +18,15 @@ interface WeeklyViewProps {
   onToggleTask: (weekKey: string, taskId: string) => void;
   onUpdateTask: (weekKey: string, taskId: string, text: string) => void;
   onDeleteTask: (weekKey: string, taskId: string) => void;
+  onAddTodo: (text: string) => void;
+  onToggleTodo: (id: string) => void;
+  onDeleteTodo: (id: string) => void;
 }
 
 export function WeeklyView({
   data, currentWeekKey,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask,
+  onAddTodo, onToggleTodo, onDeleteTodo,
 }: Readonly<WeeklyViewProps>) {
   const { T } = useTheme();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
@@ -152,6 +157,14 @@ export function WeeklyView({
           );
         })}
       </div>
+
+      {/* Backlog intemporel */}
+      <Backlog
+        todos={data.todos}
+        onAdd={onAddTodo}
+        onToggle={onToggleTodo}
+        onDelete={onDeleteTodo}
+      />
     </div>
   );
 }

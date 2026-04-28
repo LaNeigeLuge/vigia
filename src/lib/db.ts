@@ -5,7 +5,7 @@
  * Tables: tasks, habits, habit_logs  (see supabase/schema.sql)
  */
 import { supabase } from './supabase';
-import type { AppData, Habit, MoodValue, Task } from '../types';
+import type { AppData, Habit, MoodValue, Task, Todo } from '../types';
 import { getWeekStartKey } from '../utils/dateUtils';
 import { getHabitStreak } from '../utils/dataUtils';
 
@@ -16,17 +16,26 @@ function generateId(): string {
 // ─── Load ─────────────────────────────────────────────────────────────────────
 
 export async function loadAllData(userId: string): Promise<AppData> {
-  const [tasksRes, habitsRes, logsRes, moodsRes] = await Promise.all([
+  const [tasksRes, habitsRes, logsRes, moodsRes, todosRes] = await Promise.all([
     supabase.from('tasks').select('*').eq('user_id', userId).order('created_at'),
     supabase.from('habits').select('*').eq('user_id', userId).order('sort_order, created_at'),
     supabase.from('habit_logs').select('*').eq('user_id', userId),
     supabase.from('mood_logs').select('day_key, mood').eq('user_id', userId),
+    supabase.from('todos').select('*').eq('user_id', userId).order('created_at'),
   ]);
 
   if (tasksRes.error)  console.error('[db] tasks load error',  tasksRes.error);
   if (habitsRes.error) console.error('[db] habits load error', habitsRes.error);
   if (logsRes.error)   console.error('[db] logs load error',   logsRes.error);
   if (moodsRes.error)  console.error('[db] moods load error',  moodsRes.error);
+  if (todosRes.error)  console.error('[db] todos load error',  todosRes.error);
+
+  const todos: Todo[] = (todosRes.data ?? []).map((row) => ({
+    id:        row.id         as string,
+    text:      row.text       as string,
+    completed: row.completed  as boolean,
+    createdAt: row.created_at as string,
+  }));
 
   const moods: AppData['moods'] = {};
   for (const row of moodsRes.data ?? []) {
@@ -84,7 +93,7 @@ export async function loadAllData(userId: string): Promise<AppData> {
     if (streak > longestHabitStreak) { longestHabitStreak = streak; longestHabitName = habit.name; }
   }
 
-  return { weeks, habits, moods, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
+  return { weeks, habits, todos, moods, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
@@ -135,6 +144,27 @@ export async function dbUpdateHabitName(habitId: string, name: string): Promise<
 export async function dbDeleteHabit(habitId: string): Promise<void> {
   const { error } = await supabase.from('habits').delete().eq('id', habitId);
   if (error) console.error('[db] deleteHabit error', error);
+}
+
+// ─── Todos ───────────────────────────────────────────────────────────────────
+
+export async function dbAddTodo(userId: string, text: string): Promise<Todo> {
+  const todo: Todo = { id: generateId(), text, completed: false, createdAt: new Date().toISOString() };
+  const { error } = await supabase.from('todos').insert({
+    id: todo.id, user_id: userId, text, completed: false, created_at: todo.createdAt,
+  });
+  if (error) console.error('[db] addTodo error', error);
+  return todo;
+}
+
+export async function dbToggleTodo(todoId: string, completed: boolean): Promise<void> {
+  const { error } = await supabase.from('todos').update({ completed }).eq('id', todoId);
+  if (error) console.error('[db] toggleTodo error', error);
+}
+
+export async function dbDeleteTodo(todoId: string): Promise<void> {
+  const { error } = await supabase.from('todos').delete().eq('id', todoId);
+  if (error) console.error('[db] deleteTodo error', error);
 }
 
 // ─── Mood logs ───────────────────────────────────────────────────────────────

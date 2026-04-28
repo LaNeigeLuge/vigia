@@ -36,6 +36,16 @@ create index if not exists habits_user_idx        on habits(user_id);
 create index if not exists habit_logs_habit_idx   on habit_logs(habit_id);
 create index if not exists habit_logs_user_idx    on habit_logs(user_id);
 
+create table if not exists todos (
+  id         text        primary key,
+  user_id    uuid        not null references auth.users(id) on delete cascade,
+  text       text        not null,
+  completed  boolean     not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists todos_user_idx on todos(user_id);
+
 create table if not exists mood_logs (
   user_id    uuid   not null references auth.users(id) on delete cascade,
   day_key    date   not null,
@@ -51,6 +61,7 @@ create index if not exists mood_logs_user_idx on mood_logs(user_id);
 alter table tasks      enable row level security;
 alter table habits     enable row level security;
 alter table habit_logs enable row level security;
+alter table todos      enable row level security;
 alter table mood_logs  enable row level security;
 
 -- Tasks: each user sees and writes only their own rows
@@ -68,6 +79,12 @@ create policy "habits: own data only"
 -- Habit logs: same
 create policy "habit_logs: own data only"
   on habit_logs for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Todos: same
+create policy "todos: own data only"
+  on todos for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
