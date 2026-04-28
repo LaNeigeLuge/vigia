@@ -62,7 +62,6 @@ export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<Dashboar
   const weekDays = getWeekDays(weekStart);
   const { done, total } = getWeekCompletionRate(data, currentWeekKey);
   const quote = getDailyQuote();
-  const todayKey = formatDayKey(new Date());
 
   const barData = useMemo(() => weekDays.map((day) => {
     const dayKey = formatDayKey(day);
@@ -76,8 +75,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<Dashboar
       {/* Mood picker */}
       <motion.div {...fadeUp(0)}>
         <MoodPicker
-          todayKey={todayKey}
-          currentMood={data.moods[todayKey]}
+          moods={data.moods}
           onSetMood={onSetMood}
         />
       </motion.div>

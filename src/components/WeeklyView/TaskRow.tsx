@@ -45,9 +45,9 @@ export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: 
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 6,
-        padding: '4px 8px',
+        padding: '5px 8px',
         borderBottom: `1px solid ${T.rowBorder}`,
         background: hovered && !task.completed ? T.rowHoverBg : 'transparent',
         transition: 'background 0.15s',
@@ -61,6 +61,7 @@ export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: 
         className={checkAnim ? 'check-animate' : ''}
         style={{
           width: 13, height: 13,
+          marginTop: 2,
           cursor: isReadOnly ? 'default' : 'pointer',
           accentColor: T.emerald,
           flexShrink: 0,
@@ -94,9 +95,7 @@ export function TaskRow({ task, isReadOnly, onToggle, onUpdateText, onDelete }: 
             textDecoration: task.completed ? 'line-through' : 'none',
             opacity: task.completed ? 0.5 : 1,
             cursor: isReadOnly || task.completed ? 'default' : 'text',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            wordBreak: 'break-word',
             transition: 'all 0.25s',
             fontFamily: 'DM Sans, sans-serif',
           }}

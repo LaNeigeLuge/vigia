@@ -55,8 +55,8 @@ export function DayColumn({
   return (
     <div
       style={{
-        minWidth: 145,
-        width: 145,
+        flex: 1,
+        minWidth: 130,
         display: 'flex',
         flexDirection: 'column',
         opacity: colOpacity,
