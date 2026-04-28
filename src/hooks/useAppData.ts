@@ -25,7 +25,7 @@ export function useAppData(userId: string) {
     let cancelled = false;
     setLoading(true);
     loadAllData(userId)
-      .then((d) => { if (!cancelled) { setData(d); setLoading(false); } })
+      .then((d) => { if (!cancelled) { setData(d); setLoading(false); setError(null); } })
       .catch((e: unknown) => {
         if (!cancelled) {
           console.error('[useAppData] load failed', e);

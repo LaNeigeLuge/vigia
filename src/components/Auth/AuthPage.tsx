@@ -71,7 +71,7 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="48" height="48">
-              <rect width="512" height="512" rx="96" fill="#0f1510"/>
+              <rect width="512" height="512" rx="96" fill={T.emerald}/>
               <g transform="translate(256,256) rotate(-45)">
                 <rect x="-155" y="-27" width="235" height="54" rx="10" fill="#eee9de"/>
                 <rect x="82" y="-20" width="90" height="40" rx="8" fill="#ddd8cc"/>
@@ -79,11 +79,11 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
                 <rect x="218" y="-10" width="18" height="20" rx="5" fill="#b8b4a8"/>
                 <rect x="76" y="-29" width="14" height="58" rx="5" fill="#b4b0a4"/>
                 <rect x="158" y="-22" width="12" height="44" rx="4" fill="#b4b0a4"/>
-                <circle cx="-155" cy="0" r="42" fill="#0f1510"/>
+                <circle cx="-155" cy="0" r="42" fill={T.emerald}/>
                 <circle cx="-155" cy="0" r="34" fill="#6a9e98" opacity="0.9"/>
                 <circle cx="-155" cy="0" r="22" fill="#4a7c59" opacity="0.75"/>
                 <circle cx="-144" cy="-12" r="9" fill="white" opacity="0.22"/>
-                <circle cx="-155" cy="0" r="42" fill="none" stroke="#6B9B7F" strokeWidth="6"/>
+                <circle cx="-155" cy="0" r="42" fill="none" stroke="#eee9de" strokeWidth="5"/>
               </g>
             </svg>
           </div>

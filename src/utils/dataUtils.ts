@@ -2,17 +2,6 @@ import type { AppData, Habit, Task, WeekData } from '../types';
 import { formatDayKey, getWeekDays, getWeekStart, getWeekStartKey, parseDayKey } from './dateUtils';
 import { addDays } from 'date-fns';
 
-const DEFAULT_HABITS = [
-  'Wake up at 06:00',
-  'No alcohol',
-  'Cold shower',
-  'Limit social media',
-  'Budget tracking',
-  'Gym',
-  'Reading',
-  'Learn something new',
-];
-
 const MOTIVATIONAL_QUOTES = [
   "The secret of getting ahead is getting started.",
   "It always seems impossible until it's done.",
@@ -38,31 +27,13 @@ export function getDailyQuote(): string {
   return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
 }
 
-function generateId(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
 export function createDefaultAppData(): AppData {
   const weekStart = getWeekStart();
   const weekKey = formatDayKey(weekStart);
 
-  const habits: Habit[] = DEFAULT_HABITS.map((name) => ({
-    id: generateId(),
-    name,
-    completions: {},
-    createdAt: new Date().toISOString(),
-  }));
-
-  const weeks: Record<string, WeekData> = {
-    [weekKey]: {
-      weekStart: weekKey,
-      tasks: [],
-    },
-  };
-
   return {
-    weeks,
-    habits,
+    weeks: { [weekKey]: { weekStart: weekKey, tasks: [] } },
+    habits: [],
     moods: {},
     allTimeStats: {
       totalTasksCompleted: 0,
@@ -72,28 +43,6 @@ export function createDefaultAppData(): AppData {
       longestHabitName: '',
     },
   };
-}
-
-export function loadAppData(): AppData {
-  try {
-    const stored = localStorage.getItem('Vigia_data');
-    if (stored) {
-      const parsed = JSON.parse(stored) as AppData;
-      // Ensure current week exists
-      const currentWeekKey = getWeekStartKey();
-      if (!parsed.weeks[currentWeekKey]) {
-        parsed.weeks[currentWeekKey] = { weekStart: currentWeekKey, tasks: [] };
-      }
-      return parsed;
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return createDefaultAppData();
-}
-
-export function saveAppData(data: AppData): void {
-  localStorage.setItem('Vigia_data', JSON.stringify(data));
 }
 
 export function getWeekTasks(data: AppData, weekKey: string): Task[] {
@@ -150,24 +99,6 @@ export function getHabitWeekCompletion(habit: Habit, weekKey: string): { done: n
   return { done, total: 7 };
 }
 
-export function addTask(data: AppData, weekKey: string, dayKey: string, text: string): AppData {
-  const weekData = data.weeks[weekKey] ?? { weekStart: weekKey, tasks: [] };
-  const newTask: Task = {
-    id: generateId(),
-    text,
-    completed: false,
-    dayKey,
-    weekStart: weekKey,
-  };
-  return {
-    ...data,
-    weeks: {
-      ...data.weeks,
-      [weekKey]: { ...weekData, tasks: [...weekData.tasks, newTask] },
-    },
-  };
-}
-
 export function updateTask(data: AppData, weekKey: string, taskId: string, changes: Partial<Task>): AppData {
   const weekData = data.weeks[weekKey];
   if (!weekData) return data;
@@ -200,10 +131,6 @@ export function deleteTask(data: AppData, weekKey: string, taskId: string): AppD
 
 export function addHabit(data: AppData, habit: Habit): AppData {
   return { ...data, habits: [...data.habits, habit] };
-}
-
-export function createHabit(name: string): Habit {
-  return { id: generateId(), name, completions: {}, createdAt: new Date().toISOString() };
 }
 
 export function updateHabit(data: AppData, habitId: string, changes: Partial<Habit>): AppData {

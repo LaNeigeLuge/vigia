@@ -6,8 +6,8 @@
  */
 import { supabase } from './supabase';
 import type { AppData, Habit, MoodValue, Task } from '../types';
-import { formatDayKey, getWeekStartKey } from '../utils/dateUtils';
-import { addDays } from 'date-fns';
+import { getWeekStartKey } from '../utils/dateUtils';
+import { getHabitStreak } from '../utils/dataUtils';
 
 function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -80,18 +80,11 @@ export async function loadAllData(userId: string): Promise<AppData> {
   let longestHabitStreak = 0;
   let longestHabitName   = '';
   for (const habit of habits) {
-    const streak = computeStreak(habit, new Date());
+    const streak = getHabitStreak(habit);
     if (streak > longestHabitStreak) { longestHabitStreak = streak; longestHabitName = habit.name; }
   }
 
   return { weeks, habits, moods, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
-}
-
-function computeStreak(habit: Habit, asOf: Date): number {
-  let streak = 0;
-  let day = asOf;
-  while (habit.completions[formatDayKey(day)]) { streak++; day = addDays(day, -1); }
-  return streak;
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────

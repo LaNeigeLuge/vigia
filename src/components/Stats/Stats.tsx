@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -83,15 +84,16 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
 
-  const dayRows = weekDays.map((day) => {
+  const dayRows = useMemo(() => weekDays.map((day) => {
     const dayKey = formatDayKey(day);
     const { done, total } = getDayCompletionRate(data, currentWeekKey, dayKey);
     const pct = total === 0 ? 0 : Math.round((done / total) * 100);
     return { dayKey, label: getDayLabel(day), pct, done, total, level: getDayLevel(pct) };
-  });
+  }), [data, currentWeekKey, weekDays]);
 
-  const last4Weeks = getLastFourWeekStarts(currentWeekKey);
-  const habitChartData = data.habits.slice(0, 6).map((habit) => {
+  const last4Weeks = useMemo(() => getLastFourWeekStarts(currentWeekKey), [currentWeekKey]);
+
+  const habitChartData = useMemo(() => data.habits.slice(0, 6).map((habit) => {
     const entry: Record<string, string | number> = {
       name: habit.name.length > 14 ? habit.name.slice(0, 13) + '…' : habit.name,
     };
@@ -100,7 +102,7 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
       entry[`w${i + 1}`] = Math.round((done / 7) * 100);
     });
     return entry;
-  });
+  }), [data.habits, last4Weeks]);
 
   const levelColors: Record<string, string> = {
     'Beast Mode':    T.emerald,

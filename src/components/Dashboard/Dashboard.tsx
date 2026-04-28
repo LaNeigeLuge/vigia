@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -63,11 +64,11 @@ export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<Dashboar
   const quote = getDailyQuote();
   const todayKey = formatDayKey(new Date());
 
-  const barData = weekDays.map((day) => {
+  const barData = useMemo(() => weekDays.map((day) => {
     const dayKey = formatDayKey(day);
     const { done: d } = getDayCompletionRate(data, currentWeekKey, dayKey);
     return { day: getDayLabel(day), tasks: d };
-  });
+  }), [data, currentWeekKey, weekDays]);
 
   return (
     <div style={{ padding: '20px', maxWidth: 920, margin: '0 auto' }}>
