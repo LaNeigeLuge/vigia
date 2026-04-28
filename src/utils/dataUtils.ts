@@ -1,5 +1,5 @@
-import type { AppData, Habit, Task, WeekData } from '../types';
-import { formatDayKey, getWeekDays, getWeekStart, getWeekStartKey, parseDayKey } from './dateUtils';
+import type { AppData, Habit, Task } from '../types';
+import { formatDayKey, getWeekDays, getWeekStart, parseDayKey } from './dateUtils';
 import { addDays } from 'date-fns';
 
 const MOTIVATIONAL_QUOTES = [
