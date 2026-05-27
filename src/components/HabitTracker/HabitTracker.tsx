@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AppData, Habit } from '../../types';
 import { ProgressBar } from '../ui/ProgressBar';
-import { formatDayKey, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
+import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
 
@@ -15,6 +15,28 @@ interface HabitTrackerProps {
   onUpdateHabitName: (habitId: string, name: string) => void;
   onDeleteHabit: (habitId: string) => void;
   onToggleHabit: (habitId: string, dayKey: string) => void;
+}
+
+function NavBtn({ onClick, disabled = false, children }: Readonly<{
+  onClick: () => void; disabled?: boolean; children: React.ReactNode;
+}>) {
+  const { T } = useTheme();
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: disabled ? 'transparent' : T.rowHoverBg,
+        border: `1px solid ${disabled ? T.glassBorder : T.glassBorderEm}`,
+        color: disabled ? T.textMuted : T.emerald,
+        width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
+        fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: 2, transition: 'all 0.18s',
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
 function HabitNameCell({ habit, onUpdate, onDelete }: Readonly<{
@@ -95,10 +117,18 @@ export function HabitTracker({
   const { T } = useTheme();
   const [addingHabit, setAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
+  const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  const weekStart = parseDayKey(currentWeekKey);
+  const isCurrentWeek = viewWeekKey === currentWeekKey;
+  const weekStart = parseDayKey(viewWeekKey);
   const weekDays = getWeekDays(weekStart);
+
+  const navigateWeek = (dir: -1 | 1) => {
+    const next = formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7));
+    if (dir === 1 && next > currentWeekKey) return;
+    setViewWeekKey(next);
+  };
 
   const commitAdd = () => {
     const trimmed = newHabitName.trim();
@@ -126,6 +156,40 @@ export function HabitTracker({
     <div style={{ padding: '20px', overflowX: 'auto' }}>
       <div style={{ minWidth: 620 }}>
 
+        {/* Week navigation */}
+        <div className="glass" style={{
+          display: 'flex', alignItems: 'center', padding: '8px 16px', gap: 12,
+          marginBottom: 0, borderRadius: '2px 2px 0 0',
+        }}>
+          <NavBtn onClick={() => navigateWeek(-1)}>‹</NavBtn>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: T.textPrimary }}>
+              {formatWeekLabel(weekStart)}
+            </span>
+            {!isCurrentWeek && (
+              <span style={{
+                marginLeft: 10, fontSize: 10, color: T.textMuted,
+                background: T.trackBg, padding: '2px 7px', borderRadius: 2,
+              }}>
+                Read-only
+              </span>
+            )}
+          </div>
+          <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
+          {!isCurrentWeek && (
+            <button
+              onClick={() => setViewWeekKey(currentWeekKey)}
+              style={{
+                background: T.rowHoverBg, border: `1px solid ${T.glassBorderEm}`,
+                color: T.emerald, padding: '4px 12px', cursor: 'pointer',
+                fontSize: 11, fontWeight: 600, borderRadius: 2, fontFamily: 'DM Sans, sans-serif',
+              }}
+            >
+              Today
+            </button>
+          )}
+        </div>
+
         {/* Header row */}
         <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
           <div style={{ ...thStyle, minWidth: 172, maxWidth: 172, textAlign: 'left', paddingLeft: 10 }}>
@@ -145,7 +209,7 @@ export function HabitTracker({
 
         {/* Habit rows */}
         {data.habits.map((habit, idx) => {
-          const { done, total } = getHabitWeekCompletion(habit, currentWeekKey);
+          const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
           const streak = getHabitStreak(habit);
           const rowBg = idx % 2 === 0 ? T.glassBg : T.oddRowBg;
 
@@ -193,8 +257,9 @@ export function HabitTracker({
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => onToggleHabit(habit.id, dayKey)}
-                      style={{ width: 14, height: 14, accentColor: T.emerald, cursor: 'pointer' }}
+                      onChange={() => isCurrentWeek && onToggleHabit(habit.id, dayKey)}
+                      disabled={!isCurrentWeek}
+                      style={{ width: 14, height: 14, accentColor: T.emerald, cursor: isCurrentWeek ? 'pointer' : 'default', opacity: isCurrentWeek ? 1 : 0.7 }}
                     />
                   </div>
                 );
