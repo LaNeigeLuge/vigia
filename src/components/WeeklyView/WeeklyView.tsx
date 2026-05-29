@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import type { AppData, Todo } from '../../types';
+import type { AppData } from '../../types';
 import { DayColumn } from './DayColumn';
 import { Backlog } from './Backlog';
 import {
