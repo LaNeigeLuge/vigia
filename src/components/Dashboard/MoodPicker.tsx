@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { MoodValue } from '../../types';
-import { formatDayKey, addDays } from '../../utils/dateUtils';
+import { formatDayKey, addDays, getDayLabel, getDayNumber } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
 
 const MOODS: { value: MoodValue; emoji: string; label: string }[] = [
@@ -79,40 +80,54 @@ interface MoodPickerProps {
 
 export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
   const { T } = useTheme();
-  const todayKey = formatDayKey(new Date());
-  const yesterdayKey = formatDayKey(addDays(new Date(), -1));
+  const [daysShown, setDaysShown] = useState(7);
+  const today = new Date();
+
+  const days = Array.from({ length: daysShown }, (_, i) => {
+    const date   = addDays(today, -i);
+    const dayKey = formatDayKey(date);
+    let label: string;
+    if (i === 0)      label = "Aujourd'hui";
+    else if (i === 1) label = 'Hier';
+    else              label = `${getDayLabel(date)} ${getDayNumber(date)}`;
+    return { dayKey, label };
+  });
 
   return (
-    <div
-      className="glass"
-      style={{ padding: '16px 20px', borderRadius: 2, marginBottom: 12 }}
-    >
+    <div className="glass" style={{ borderRadius: 2, marginBottom: 12, overflow: 'hidden' }}>
       <div style={{
-        fontFamily: 'Syne, sans-serif',
-        fontWeight: 700,
-        fontSize: 10,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        color: T.emerald,
-        marginBottom: 12,
+        fontFamily: 'Syne, sans-serif', fontWeight: 700,
+        fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: '0.12em', color: T.emerald,
+        padding: '10px 20px',
+        borderBottom: `1px solid ${T.glassBorderEm}`,
       }}>
         Mood
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <MoodRow
-          label="Hier"
-          dayKey={yesterdayKey}
-          currentMood={moods[yesterdayKey]}
-          onSetMood={onSetMood}
-        />
-        <div style={{ height: 1, background: T.glassBorder }} />
-        <MoodRow
-          label="Aujourd'hui"
-          dayKey={todayKey}
-          currentMood={moods[todayKey]}
-          onSetMood={onSetMood}
-        />
+      <div style={{ maxHeight: 210, overflowY: 'auto', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {days.map((day, i) => (
+          <div key={day.dayKey}>
+            {i > 0 && <div style={{ height: 1, background: T.glassBorder, marginBottom: 8 }} />}
+            <MoodRow
+              label={day.label}
+              dayKey={day.dayKey}
+              currentMood={moods[day.dayKey]}
+              onSetMood={onSetMood}
+            />
+          </div>
+        ))}
+        <div style={{ height: 1, background: T.glassBorder, marginTop: 4 }} />
+        <button
+          onClick={() => setDaysShown((n) => n + 7)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: T.textMuted, fontSize: 11, fontFamily: 'DM Sans, sans-serif',
+            padding: '4px 0', textAlign: 'center',
+          }}
+        >
+          + semaine précédente
+        </button>
       </div>
     </div>
   );

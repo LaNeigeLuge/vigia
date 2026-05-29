@@ -166,14 +166,6 @@ export function HabitTracker({
             <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: T.textPrimary }}>
               {formatWeekLabel(weekStart)}
             </span>
-            {!isCurrentWeek && (
-              <span style={{
-                marginLeft: 10, fontSize: 10, color: T.textMuted,
-                background: T.trackBg, padding: '2px 7px', borderRadius: 2,
-              }}>
-                Read-only
-              </span>
-            )}
           </div>
           <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
           {!isCurrentWeek && (
@@ -257,9 +249,8 @@ export function HabitTracker({
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => isCurrentWeek && onToggleHabit(habit.id, dayKey)}
-                      disabled={!isCurrentWeek}
-                      style={{ width: 14, height: 14, accentColor: T.emerald, cursor: isCurrentWeek ? 'pointer' : 'default', opacity: isCurrentWeek ? 1 : 0.7 }}
+                      onChange={() => onToggleHabit(habit.id, dayKey)}
+                      style={{ width: 14, height: 14, accentColor: T.emerald, cursor: 'pointer' }}
                     />
                   </div>
                 );

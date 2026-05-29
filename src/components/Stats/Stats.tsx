@@ -1,17 +1,15 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import type { AppData } from '../../types';
 import {
   formatDayKey, getDayLabel, getWeekDays, parseDayKey,
 } from '../../utils/dateUtils';
 import {
-  getDayCompletionRate, getDayLevel, getHabitStreak,
-  getHabitWeekCompletion, getLastFourWeekStarts, getWeekCompletionRate,
+  getDayCompletionRate, getDayLevel, getHabitStreak, getWeekCompletionRate,
 } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { HabitHeatmap } from './HabitHeatmap';
+import { HabitMoodChart } from './HabitCharts';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0) => ({
@@ -91,19 +89,6 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
     return { dayKey, label: getDayLabel(day), pct, done, total, level: getDayLevel(pct) };
   }), [data, currentWeekKey, weekDays]);
 
-  const last4Weeks = useMemo(() => getLastFourWeekStarts(currentWeekKey), [currentWeekKey]);
-
-  const habitChartData = useMemo(() => data.habits.slice(0, 6).map((habit) => {
-    const entry: Record<string, string | number> = {
-      name: habit.name.length > 14 ? habit.name.slice(0, 13) + '…' : habit.name,
-    };
-    last4Weeks.forEach((wk, i) => {
-      const { done } = getHabitWeekCompletion(habit, wk);
-      entry[`w${i + 1}`] = Math.round((done / 7) * 100);
-    });
-    return entry;
-  }), [data.habits, last4Weeks]);
-
   const levelColors: Record<string, string> = {
     'Beast Mode':    T.emerald,
     'On Fire':       T.sage,
@@ -113,13 +98,6 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
   };
 
   const border = `1px solid ${T.glassBorder}`;
-
-  const barColors = [
-    T.trackBg,
-    T.aqua,
-    T.sage,
-    T.emerald,
-  ];
 
   let deltaAccent = T.textMuted;
   if (delta > 0) deltaAccent = T.emerald;
@@ -177,47 +155,20 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
         </div>
       </motion.div>
 
-      {/* Habit consistency chart */}
+      {/* Habit consistency heatmap */}
       <motion.div {...fadeUp(0.2)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
-        <BlockHeader>Habit Consistency — Last 4 Weeks</BlockHeader>
-        <div style={{ padding: '16px' }}>
-          {habitChartData.length === 0 ? (
-            <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-              No habits tracked yet.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={habitChartData} margin={{ top: 4, right: 8, bottom: 28, left: -24 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name" tick={{ fontSize: 10, fill: T.textMuted, fontFamily: 'DM Sans' }}
-                  interval={0} angle={-18} textAnchor="end" height={40}
-                  axisLine={{ stroke: T.glassBorder }} tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 100]} tickFormatter={(v: number) => `${v}%`}
-                  tick={{ fontSize: 10, fill: T.textMuted }} axisLine={false} tickLine={false}
-                />
-                <Tooltip
-                  formatter={(v, name) => [`${v ?? 0}%`, `Week ${String(name).slice(1)}`]}
-                  contentStyle={{
-                    background: T.tooltipBg,
-                    border: `1px solid ${T.tooltipBorder}`,
-                    fontSize: 11, color: T.textPrimary,
-                  }}
-                  cursor={{ fill: T.rowHoverBg }}
-                />
-                {['w1', 'w2', 'w3', 'w4'].map((wk, i) => (
-                  <Bar key={wk} dataKey={wk} fill={barColors[i]} maxBarSize={18} radius={[2, 2, 0, 0]} />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+        <BlockHeader>Habit Consistency — All Time</BlockHeader>
+        <HabitHeatmap habits={data.habits} currentWeekKey={currentWeekKey} moods={data.moods} />
+      </motion.div>
+
+      {/* Habits vs Mood */}
+      <motion.div {...fadeUp(0.35)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+        <BlockHeader>Habits vs Mood</BlockHeader>
+        <HabitMoodChart data={data} />
       </motion.div>
 
       {/* Habit streaks grid */}
-      <motion.div {...fadeUp(0.3)} className="glass" style={{ borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.4)} className="glass" style={{ borderRadius: 2 }}>
         <BlockHeader>Current Habit Streaks</BlockHeader>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {data.habits.map((h) => {
