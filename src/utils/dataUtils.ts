@@ -36,6 +36,7 @@ export function createDefaultAppData(): AppData {
     habits: [],
     todos: [],
     moods: {},
+    emotionalCheckins: {},
     allTimeStats: {
       totalTasksCompleted: 0,
       bestWeekCount: 0,

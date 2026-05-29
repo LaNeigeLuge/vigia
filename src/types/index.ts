@@ -28,11 +28,18 @@ export interface Todo {
 // 1 = pas ouf … 5 = super
 export type MoodValue = 1 | 2 | 3 | 4 | 5;
 
+export type EmotionSlot = 'matin' | 'apresmidi' | 'soir';
+export type EmotionId =
+  | 'heureux' | 'confiant' | 'energise' | 'concentre' | 'inspire'
+  | 'joueur' | 'enjoleur' | 'bien' | 'blase' | 'hebete'
+  | 'embarrasse' | 'apeure' | 'malaaise' | 'tendu' | 'en-colere' | 'triste';
+
 export interface AppData {
   weeks: Record<string, WeekData>;
   habits: Habit[];
   todos: Todo[];
-  moods: Record<string, MoodValue>; // 'YYYY-MM-DD' -> MoodValue
+  moods: Record<string, MoodValue>;
+  emotionalCheckins: Record<string, Partial<Record<EmotionSlot, EmotionId>>>;
   allTimeStats: {
     totalTasksCompleted: number;
     bestWeekCount: number;

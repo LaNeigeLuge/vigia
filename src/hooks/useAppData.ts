@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppData, MoodValue } from '../types';
+import type { AppData, EmotionId, EmotionSlot, MoodValue } from '../types';
 import {
   loadAllData,
   dbAddTask, dbUpdateTask, dbDeleteTask,
   dbAddHabit, dbUpdateHabitName, dbDeleteHabit,
   dbCheckHabitLog, dbUncheckHabitLog,
-  dbSetMood,
+  dbSetMood, dbSetCheckin,
   dbAddTodo, dbToggleTodo, dbDeleteTodo,
 } from '../lib/db';
 import { updateTask, deleteTask, addHabit, updateHabit, deleteHabit, toggleHabit, createDefaultAppData } from '../utils/dataUtils';
@@ -97,6 +97,17 @@ export function useAppData(userId: string) {
     dbSetMood(userId, dayKey, mood).catch(console.error);
   }, [userId]);
 
+  const handleSetCheckin = useCallback((dayKey: string, slot: EmotionSlot, emotion: EmotionId) => {
+    setData((d) => ({
+      ...d,
+      emotionalCheckins: {
+        ...d.emotionalCheckins,
+        [dayKey]: { ...d.emotionalCheckins[dayKey], [slot]: emotion },
+      },
+    }));
+    dbSetCheckin(userId, dayKey, slot, emotion).catch(console.error);
+  }, [userId]);
+
   // ─── Todos ─────────────────────────────────────────────────────────────────
 
   const handleAddTodo = useCallback((text: string) => {
@@ -123,7 +134,7 @@ export function useAppData(userId: string) {
     data, loading, error, currentWeekKey,
     handleAddTask, handleUpdateTask, handleDeleteTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
-    handleSetMood,
+    handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
   };
 }

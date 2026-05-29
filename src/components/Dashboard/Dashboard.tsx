@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import type { AppData, MoodValue } from '../../types';
+import type { AppData, EmotionId, EmotionSlot, MoodValue } from '../../types';
 import { DonutChart } from '../ui/DonutChart';
 import { ProgressBar } from '../ui/ProgressBar';
 import { MoodPicker } from './MoodPicker';
+import { EmotionalCheckIn } from './EmotionalCheckIn';
 import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getDailyQuote, getDayCompletionRate, getHabitStreak, getWeekCompletionRate } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
@@ -21,6 +22,7 @@ interface DashboardProps {
   data: AppData;
   currentWeekKey: string;
   onSetMood: (dayKey: string, mood: MoodValue) => void;
+  onSetCheckin: (dayKey: string, slot: EmotionSlot, emotion: EmotionId) => void;
 }
 
 function GlassPanel({ children, style = {}, className = '' }: Readonly<{
@@ -56,7 +58,7 @@ function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<DashboardProps>) {
+export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Readonly<DashboardProps>) {
   const { T } = useTheme();
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
@@ -74,14 +76,16 @@ export function Dashboard({ data, currentWeekKey, onSetMood }: Readonly<Dashboar
 
       {/* Mood picker */}
       <motion.div {...fadeUp(0)}>
-        <MoodPicker
-          moods={data.moods}
-          onSetMood={onSetMood}
-        />
+        <MoodPicker moods={data.moods} onSetMood={onSetMood} />
+      </motion.div>
+
+      {/* Emotional check-ins */}
+      <motion.div {...fadeUp(0.05)}>
+        <EmotionalCheckIn checkins={data.emotionalCheckins} onSetCheckin={onSetCheckin} />
       </motion.div>
 
       {/* Week label */}
-      <motion.div {...fadeUp(0.05)} style={{ marginBottom: 16 }}>
+      <motion.div {...fadeUp(0.1)} style={{ marginBottom: 16 }}>
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontWeight: 700,

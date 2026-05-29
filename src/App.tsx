@@ -65,7 +65,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
     data, loading, error, currentWeekKey,
     handleAddTask, handleUpdateTask, handleDeleteTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
-    handleSetMood,
+    handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
   } = useAppData(userId);
 
@@ -122,7 +122,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
       <main style={{ position: 'relative', zIndex: 1, paddingBottom: 72 }}>
         <AnimatePresence mode="wait">
           <motion.div key={section} variants={sectionVariants} initial="initial" animate="animate" exit="exit">
-            {section === 'dashboard' && <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} />}
+            {section === 'dashboard' && <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} onSetCheckin={handleSetCheckin} />}
             {section === 'weekly' && (
               <WeeklyView
                 data={data} currentWeekKey={currentWeekKey}
