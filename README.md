@@ -1,73 +1,142 @@
-# React + TypeScript + Vite
+# vigia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Personal productivity app. Weekly task planner, habit tracker, mood logging, and emotional check-ins — all in a single mobile-first PWA backed by Supabase.
 
-Currently, two official plugins are available:
+Data lives in PostgreSQL, scoped per user via Row Level Security. The frontend is a static build deployed to Vercel. No server code; the client talks directly to Supabase.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+| Layer     | Tech                                 |
+| --------- | ------------------------------------ |
+| Frontend  | React 19, TypeScript 6, Vite 8       |
+| Styling   | Tailwind CSS v4, Framer Motion       |
+| Charts    | Recharts                             |
+| Backend   | Supabase (Auth + PostgreSQL + RLS)   |
+| PWA       | vite-plugin-pwa (Workbox, autoUpdate)|
+| Utilities | date-fns, canvas-confetti            |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+**Dashboard** — week-at-a-glance view with a donut chart for weekly task progress, a bar chart for daily completions, habit streaks with progress bars, and a daily quote.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Mood tracking** — daily mood score (1 to 5) with scrollable history. Supports editing past entries.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Emotional check-ins** — three time slots per day (morning, afternoon, night), each rendered as a 16-segment color wheel mapped to a set of emotions. After selection, the wheel collapses to a confirmed circle showing the chosen emotion; click to re-select. Supports today and yesterday.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Weekly planner** — task list organized by day within a week. Navigate to past weeks for review or retroactive edits.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+**Habit tracker** — daily checkbox grid with streak counting. Week navigation with full edit access on past weeks. GitHub-style contribution heatmap in the stats view.
+
+**Stats** — all-time KPIs (total tasks completed, best week, longest habit streak), habit consistency heatmap with mood overlay, and a dual-axis chart correlating habit completion rate with daily mood.
+
+**Theming** — dark and light modes with a shared token palette (emerald, amber, sage, aqua). Toggle persisted in local state.
+
+**PWA** — installable on mobile, offline-capable via Workbox service worker with network-first caching for Supabase API calls.
+
+## Architecture
+
+```text
+src/
+  App.tsx                  Auth gate + section routing
+  ThemeContext.tsx          Dark/light theme provider
+  theme.ts                 Token definitions (colors, shadows)
+  components/
+    Auth/                  Sign-in / sign-up page
+    Dashboard/             Dashboard, MoodPicker, EmotionalCheckIn
+    WeeklyView/            Weekly task planner
+    HabitTracker/          Habit grid with week navigation
+    Stats/                 KPIs, HabitHeatmap, HabitCharts
+    layout/                NavBar, BottomNav
+    ui/                    DonutChart, ProgressBar
+  hooks/
+    useAppData.ts          Central state + optimistic DB writes
+    useAuth.ts             Supabase auth session management
+  lib/
+    db.ts                  Supabase query layer (all CRUD)
+    supabase.ts            Supabase client init
+  types/
+    index.ts               Shared type definitions
+  utils/
+    dataUtils.ts           Pure helpers (streaks, completion rates, quotes)
+    dateUtils.ts           Date formatting and week math
+supabase/
+  schema.sql               Full DDL with RLS policies
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Data model
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Type           | Fields                                      |
+| -------------- | ------------------------------------------- |
+| `Task`         | id, text, completed, dayKey, weekStart      |
+| `Habit`        | id, name, completions (day map), createdAt  |
+| `Todo`         | id, text, completed, createdAt              |
+| `MoodValue`    | 1 through 5                                 |
+| `EmotionSlot`  | matin, apresmidi, soir                      |
+| `EmotionId`    | 16 values (heureux, confiant, triste, ...)  |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Database
+
+Six tables in Supabase, all with RLS enforcing `auth.uid() = user_id`:
+
+`tasks`, `habits`, `habit_logs`, `todos`, `mood_logs`, `emotional_checkins`
+
+Writes are optimistic: local state updates immediately, then the DB call fires in the background. Errors are logged to console.
+
+## Setup
+
+Clone and install:
+
+```bash
+git clone https://github.com/LaNeigeLuge/vigia.git
+cd vigia
+npm install
 ```
+
+Configure Supabase credentials:
+
+```bash
+cp .env.example .env
+# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+```
+
+Apply the database schema. In your Supabase project SQL Editor, run the contents of `supabase/schema.sql`, then add the emotional check-ins table:
+
+```sql
+create table if not exists emotional_checkins (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day_key date not null,
+  slot text not null check (slot in ('matin', 'apresmidi', 'soir')),
+  emotion text not null,
+  primary key (user_id, day_key, slot)
+);
+
+alter table emotional_checkins enable row level security;
+
+create policy "emotional_checkins: own data only"
+  on emotional_checkins for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Deployment
+
+The production build is a static site. Deploy to any static host (Vercel, Netlify, Cloudflare Pages). Set the same `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables in your hosting provider.
+
+The Vercel build command is `npm run build` with the output directory `dist`.
+
+## License
+
+Private project. Not published under an open-source license.
