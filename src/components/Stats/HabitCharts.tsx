@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  ComposedChart, Area, Line,
+  ComposedChart, Area, Line, Bar, BarChart,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { AppData, MoodValue } from '../../types';
-import { addDays, formatDayKey, parseDayKey } from '../../utils/dateUtils';
+import type { AppData, Habit, MoodValue } from '../../types';
+import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
 
 interface ChartPoint {
@@ -222,6 +222,122 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
         { color: T.emerald, opacity: 0.7, label: 'habits %' },
         { color: T.amber,   opacity: 1,   label: 'mood (1–5)' },
       ]} />
+    </div>
+  );
+}
+
+// ─── Chart 3: weekly bar chart per habit ─────────────────────────────────────
+
+interface WeekBarPoint {
+  label: string;
+  count: number;
+}
+
+function useHabitWeeklyData(habit: Habit | undefined): WeekBarPoint[] {
+  return useMemo(() => {
+    if (!habit) return [];
+
+    const completedDays = Object.keys(habit.completions).filter(d => habit.completions[d]).sort();
+    if (completedDays.length === 0) return [];
+
+    const earliest = parseDayKey(completedDays[0]);
+    const earliestWeek = getWeekStart(earliest);
+    const currentWeek = getWeekStart(new Date());
+
+    const weeks: WeekBarPoint[] = [];
+    let cursor = earliestWeek;
+
+    while (cursor <= currentWeek) {
+      let count = 0;
+      for (let d = 0; d < 7; d++) {
+        const dayKey = formatDayKey(addDays(cursor, d));
+        if (habit.completions[dayKey]) count++;
+      }
+      const label = formatDayKey(cursor).slice(5).replace('-', '/');
+      weeks.push({ label, count });
+      cursor = addDays(cursor, 7);
+    }
+
+    return weeks;
+  }, [habit]);
+}
+
+interface HabitWeeklyBarProps { habits: Habit[] }
+
+export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
+  const { T } = useTheme();
+  const [selectedId, setSelectedId] = useState<string>(habits[0]?.id ?? '');
+
+  const selected = habits.find(h => h.id === selectedId);
+  const points = useHabitWeeklyData(selected);
+
+  if (habits.length === 0) return <Empty />;
+
+  return (
+    <div style={{ padding: '12px 8px 8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 8px' }}>
+        <select
+          value={selectedId}
+          onChange={e => setSelectedId(e.target.value)}
+          style={{
+            background: T.rowHoverBg,
+            color: T.textPrimary,
+            border: `1px solid ${T.glassBorder}`,
+            borderRadius: 4,
+            padding: '4px 8px',
+            fontSize: 11,
+            fontFamily: 'DM Sans, sans-serif',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          {habits.map(h => (
+            <option key={h.id} value={h.id}>{h.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {points.length === 0 ? (
+        <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
+          No data for this habit yet.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={points} margin={{ top: 4, right: 16, bottom: 4, left: -20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={T.glassBorder} vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' }}
+              axisLine={false} tickLine={false}
+              interval={Math.max(0, Math.floor(points.length / 8))}
+            />
+            <YAxis
+              domain={[0, 7]}
+              ticks={[0, 1, 2, 3, 4, 5, 6, 7]}
+              tick={{ fontSize: 9, fill: T.textMuted }}
+              axisLine={false} tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const count = payload[0].value as number;
+                return (
+                  <TooltipBox>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Week {label}</div>
+                    <div><b>{count}</b>/7 days</div>
+                  </TooltipBox>
+                );
+              }}
+            />
+            <Bar
+              dataKey="count"
+              fill={T.emerald}
+              radius={[2, 2, 0, 0]}
+              maxBarSize={32}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

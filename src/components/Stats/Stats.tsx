@@ -9,7 +9,7 @@ import {
 } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
 import { HabitHeatmap } from './HabitHeatmap';
-import { HabitMoodChart } from './HabitCharts';
+import { HabitMoodChart, HabitWeeklyBarChart } from './HabitCharts';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0) => ({
@@ -161,14 +161,20 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
         <HabitHeatmap habits={data.habits} currentWeekKey={currentWeekKey} moods={data.moods} />
       </motion.div>
 
+      {/* Habit weekly bar chart */}
+      <motion.div {...fadeUp(0.3)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+        <BlockHeader>Habit History — Weekly</BlockHeader>
+        <HabitWeeklyBarChart habits={data.habits} />
+      </motion.div>
+
       {/* Habits vs Mood */}
-      <motion.div {...fadeUp(0.35)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.4)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
         <BlockHeader>Habits vs Mood</BlockHeader>
         <HabitMoodChart data={data} />
       </motion.div>
 
       {/* Habit streaks grid */}
-      <motion.div {...fadeUp(0.4)} className="glass" style={{ borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.5)} className="glass" style={{ borderRadius: 2 }}>
         <BlockHeader>Current Habit Streaks</BlockHeader>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {data.habits.map((h) => {
