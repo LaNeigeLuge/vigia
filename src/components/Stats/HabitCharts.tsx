@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ComposedChart, Area, Line, Bar, BarChart,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
+  ResponsiveContainer, ReferenceLine, LabelList,
 } from 'recharts';
 import type { AppData, Habit, MoodValue } from '../../types';
 import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
@@ -230,36 +230,75 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
 
 interface WeekBarPoint {
   label: string;
+  fullDate: string;
   count: number;
+  activeDays: number;
 }
 
-function useHabitWeeklyData(habit: Habit | undefined): WeekBarPoint[] {
+function buildActiveDaysSet(allHabits: Habit[]): Set<string> {
+  const active = new Set<string>();
+  for (const h of allHabits) {
+    for (const [dayKey, checked] of Object.entries(h.completions)) {
+      if (checked) active.add(dayKey);
+    }
+  }
+  return active;
+}
+
+function useHabitWeeklyData(habit: Habit | undefined, allHabits: Habit[]): WeekBarPoint[] {
   return useMemo(() => {
     if (!habit) return [];
 
-    const completedDays = Object.keys(habit.completions).filter(d => habit.completions[d]).sort();
-    if (completedDays.length === 0) return [];
+    const activeDaysSet = buildActiveDaysSet(allHabits);
+    if (activeDaysSet.size === 0) return [];
 
-    const earliest = parseDayKey(completedDays[0]);
+    const allActiveSorted = [...activeDaysSet].sort();
+    const earliest = parseDayKey(allActiveSorted[0]);
     const earliestWeek = getWeekStart(earliest);
     const currentWeek = getWeekStart(new Date());
+    const todayKey = formatDayKey(new Date());
 
     const weeks: WeekBarPoint[] = [];
     let cursor = earliestWeek;
 
     while (cursor <= currentWeek) {
       let count = 0;
+      let activeDays = 0;
       for (let d = 0; d < 7; d++) {
         const dayKey = formatDayKey(addDays(cursor, d));
-        if (habit.completions[dayKey]) count++;
+        if (dayKey > todayKey) break;
+        if (activeDaysSet.has(dayKey)) {
+          activeDays++;
+          if (habit.completions[dayKey]) count++;
+        }
       }
-      const label = formatDayKey(cursor).slice(5).replace('-', '/');
-      weeks.push({ label, count });
+      if (activeDays > 0) {
+        const fullDate = formatDayKey(cursor);
+        const label = fullDate.slice(5).replace('-', '/');
+        weeks.push({ label, fullDate, count, activeDays });
+      }
       cursor = addDays(cursor, 7);
     }
 
     return weeks;
-  }, [habit]);
+  }, [habit, allHabits]);
+}
+
+function computeAverages(points: WeekBarPoint[], inverted: boolean) {
+  if (points.length === 0) return { weeklyAvg: 0, monthlyAvg: 0 };
+
+  const values = points.map(p => inverted ? p.activeDays - p.count : p.count);
+  const weeklyAvg = values.reduce((s, v) => s + v, 0) / values.length;
+
+  const currentMonth = points[points.length - 1].fullDate.slice(0, 7);
+  const monthPoints = points.filter(p => p.fullDate.slice(0, 7) === currentMonth);
+  const monthValues = monthPoints.map(p => inverted ? p.activeDays - p.count : p.count);
+  const monthlyAvg = monthValues.reduce((s, v) => s + v, 0) / monthValues.length;
+
+  return {
+    weeklyAvg: Math.round(weeklyAvg * 10) / 10,
+    monthlyAvg: Math.round(monthlyAvg * 10) / 10,
+  };
 }
 
 interface HabitWeeklyBarProps { habits: Habit[] }
@@ -267,15 +306,48 @@ interface HabitWeeklyBarProps { habits: Habit[] }
 export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
   const { T } = useTheme();
   const [selectedId, setSelectedId] = useState<string>(habits[0]?.id ?? '');
+  const [inverted, setInverted] = useState(false);
 
   const selected = habits.find(h => h.id === selectedId);
-  const points = useHabitWeeklyData(selected);
+  const rawPoints = useHabitWeeklyData(selected, habits);
+
+  const displayPoints = useMemo(
+    () => rawPoints.map(p => ({
+      ...p,
+      display: inverted ? p.activeDays - p.count : p.count,
+    })),
+    [rawPoints, inverted],
+  );
+
+  const { weeklyAvg, monthlyAvg } = useMemo(
+    () => computeAverages(rawPoints, inverted),
+    [rawPoints, inverted],
+  );
 
   if (habits.length === 0) return <Empty />;
 
+  const buttonStyle = {
+    background: T.rowHoverBg,
+    color: inverted ? T.amber : T.textSecondary,
+    border: `1px solid ${inverted ? T.amber : T.glassBorder}`,
+    borderRadius: 4,
+    padding: '4px 8px',
+    fontSize: 11,
+    fontFamily: 'DM Sans, sans-serif',
+    cursor: 'pointer' as const,
+    outline: 'none',
+  };
+
   return (
     <div style={{ padding: '12px 8px 8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '0 8px 8px' }}>
+        <button
+          onClick={() => setInverted(v => !v)}
+          style={buttonStyle}
+          title={inverted ? 'Showing: days done → days NOT done' : 'Showing: days done as checked'}
+        >
+          {inverted ? '↕ Inversé' : '↕ Inverser'}
+        </button>
         <select
           value={selectedId}
           onChange={e => setSelectedId(e.target.value)}
@@ -297,46 +369,70 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
         </select>
       </div>
 
-      {points.length === 0 ? (
+      {displayPoints.length === 0 ? (
         <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
           No data for this habit yet.
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={points} margin={{ top: 4, right: 16, bottom: 4, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={T.glassBorder} vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' }}
-              axisLine={false} tickLine={false}
-              interval={Math.max(0, Math.floor(points.length / 8))}
-            />
-            <YAxis
-              domain={[0, 7]}
-              ticks={[0, 1, 2, 3, 4, 5, 6, 7]}
-              tick={{ fontSize: 9, fill: T.textMuted }}
-              axisLine={false} tickLine={false}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                const count = payload[0].value as number;
-                return (
-                  <TooltipBox>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Week {label}</div>
-                    <div><b>{count}</b>/7 days</div>
-                  </TooltipBox>
-                );
-              }}
-            />
-            <Bar
-              dataKey="count"
-              fill={T.emerald}
-              radius={[2, 2, 0, 0]}
-              maxBarSize={32}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        <>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={displayPoints} margin={{ top: 18, right: 16, bottom: 4, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={T.glassBorder} vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' }}
+                axisLine={false} tickLine={false}
+                interval={Math.max(0, Math.floor(displayPoints.length / 8))}
+              />
+              <YAxis
+                domain={[0, 7]}
+                ticks={[0, 1, 2, 3, 4, 5, 6, 7]}
+                tick={{ fontSize: 9, fill: T.textMuted }}
+                axisLine={false} tickLine={false}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const point = payload[0].payload as WeekBarPoint & { display: number };
+                  return (
+                    <TooltipBox>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>Week {point.label}</div>
+                      <div><b>{point.display}</b>/{point.activeDays} active days {inverted ? '(inversé)' : ''}</div>
+                    </TooltipBox>
+                  );
+                }}
+              />
+              <ReferenceLine
+                y={weeklyAvg}
+                stroke={T.aqua}
+                strokeDasharray="6 3"
+                strokeWidth={1.5}
+              />
+              <ReferenceLine
+                y={monthlyAvg}
+                stroke={T.amber}
+                strokeDasharray="3 3"
+                strokeWidth={1.5}
+              />
+              <Bar
+                dataKey="display"
+                fill={T.emerald}
+                radius={[6, 6, 0, 0]}
+                maxBarSize={32}
+              >
+                <LabelList
+                  dataKey="display"
+                  position="top"
+                  style={{ fontSize: 9, fontWeight: 700, fill: T.textSecondary, fontFamily: 'DM Sans' }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <Legend items={[
+            { color: T.aqua, opacity: 1, label: `avg. all weeks (${weeklyAvg})` },
+            { color: T.amber, opacity: 1, label: `avg. current month (${monthlyAvg})` },
+          ]} />
+        </>
       )}
     </div>
   );
