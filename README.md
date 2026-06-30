@@ -1,44 +1,55 @@
 # vigia
 
-Personal productivity app. Weekly task planner, habit tracker, mood logging, and emotional check-ins — all in a single mobile-first PWA backed by Supabase.
+A mobile-first productivity PWA — weekly task planner, habit tracker, mood logging, and emotional check-ins in a single app. Backed by Supabase with per-user data isolation via Row Level Security.
 
-Data lives in PostgreSQL, scoped per user via Row Level Security. The frontend is a static build deployed to Vercel. No server code; the client talks directly to Supabase.
+![vigia dashboard](src/assets/dashboard.png)
+
+## Highlights
+
+- **Emotional check-in wheels** — three time slots per day (morning, afternoon, night), each a 16-segment color wheel mapped to emotions. Pick one and the wheel collapses to a confirmed circle; click again to re-select.
+- **Habit consistency heatmap** — GitHub-style contribution grid across all weeks, with a daily mood overlay so you can see how habits and mood track together.
+- **Mood ↔ habit correlation** — a dual-axis chart that plots habit completion rate against daily mood, week over week.
+- **Streaks that motivate** — live streak counters and weekly progress rings on every habit, with a "Beast Mode" callout on 100% days.
+- **Optimistic writes** — local state updates instantly, the Supabase call fires in the background. The UI never waits on the network.
+- **Installable & offline-capable** — Workbox service worker with network-first caching for Supabase, so the app keeps working without a connection.
+- **Warm dark & light themes** — a shared token palette (emerald, amber, sage, aqua) with an instant toggle.
 
 ## Stack
 
-| Layer     | Tech                                 |
-| --------- | ------------------------------------ |
-| Frontend  | React 19, TypeScript 6, Vite 8       |
-| Styling   | Tailwind CSS v4, Framer Motion       |
-| Charts    | Recharts                             |
-| Backend   | Supabase (Auth + PostgreSQL + RLS)   |
-| PWA       | vite-plugin-pwa (Workbox, autoUpdate)|
-| Utilities | date-fns, canvas-confetti            |
+| Layer     | Tech                                  |
+| --------- | ------------------------------------- |
+| Frontend  | React 19, TypeScript 6, Vite 8        |
+| Styling   | Tailwind CSS v4, Framer Motion        |
+| Charts    | Recharts                              |
+| Backend   | Supabase (Auth + PostgreSQL + RLS)    |
+| PWA       | vite-plugin-pwa (Workbox, autoUpdate) |
+| Utilities | date-fns, canvas-confetti             |
+
+## Screenshots
+
+| Weekly planner | Habit tracker |
+| --- | --- |
+| ![Weekly planner — per-day task columns with completion rings and a backlog](src/assets/weekly.png) | ![Habit tracker — daily checkbox grid with weekly rate and streak counters](src/assets/habits.png) |
+
+![Stats — KPIs, habit consistency heatmap with mood overlay, and weekly history chart](src/assets/stats.png)
 
 ## Features
 
-**Dashboard** — week-at-a-glance view with a donut chart for weekly task progress, a bar chart for daily completions, habit streaks with progress bars, and a daily quote.
-
-**Mood tracking** — daily mood score (1 to 5) with scrollable history. Supports editing past entries.
-
-**Emotional check-ins** — three time slots per day (morning, afternoon, night), each rendered as a 16-segment color wheel mapped to a set of emotions. After selection, the wheel collapses to a confirmed circle showing the chosen emotion; click to re-select. Supports today and yesterday.
-
-**Weekly planner** — task list organized by day within a week. Navigate to past weeks for review or retroactive edits.
-
-**Habit tracker** — daily checkbox grid with streak counting. Week navigation with full edit access on past weeks. GitHub-style contribution heatmap in the stats view.
-
-**Stats** — all-time KPIs (total tasks completed, best week, longest habit streak), habit consistency heatmap with mood overlay, and a dual-axis chart correlating habit completion rate with daily mood.
-
-**Theming** — dark and light modes with a shared token palette (emerald, amber, sage, aqua). Toggle persisted in local state.
-
-**PWA** — installable on mobile, offline-capable via Workbox service worker with network-first caching for Supabase API calls.
+- **Dashboard** — week-at-a-glance with a weekly-progress donut, a daily-completions bar chart, habit streaks, and a daily quote
+- **Weekly planner** — tasks organized by day; navigate to past weeks for review or retroactive edits, with a separate backlog
+- **Habit tracker** — daily checkbox grid, per-habit weekly rate and streak, full edit access on past weeks
+- **Mood tracking** — daily 1–5 score with scrollable history and editable past entries
+- **Emotional check-ins** — morning / afternoon / night, each a 16-segment emotion wheel (today and yesterday)
+- **Stats** — all-time KPIs (total tasks, best week, longest streak), consistency heatmap with mood overlay, and a habit-vs-mood correlation chart
+- **Theming** — dark and light modes from a shared token palette
+- **PWA** — installable on mobile, offline-capable via a Workbox service worker
 
 ## Architecture
 
 ```text
 src/
   App.tsx                  Auth gate + section routing
-  ThemeContext.tsx          Dark/light theme provider
+  ThemeContext.tsx         Dark/light theme provider
   theme.ts                 Token definitions (colors, shadows)
   components/
     Auth/                  Sign-in / sign-up page
@@ -65,14 +76,14 @@ supabase/
 
 ### Data model
 
-| Type           | Fields                                      |
-| -------------- | ------------------------------------------- |
-| `Task`         | id, text, completed, dayKey, weekStart      |
-| `Habit`        | id, name, completions (day map), createdAt  |
-| `Todo`         | id, text, completed, createdAt              |
-| `MoodValue`    | 1 through 5                                 |
-| `EmotionSlot`  | matin, apresmidi, soir                      |
-| `EmotionId`    | 16 values (heureux, confiant, triste, ...)  |
+| Type          | Fields                                     |
+| ------------- | ------------------------------------------ |
+| `Task`        | id, text, completed, dayKey, weekStart     |
+| `Habit`       | id, name, completions (day map), createdAt |
+| `Todo`        | id, text, completed, createdAt             |
+| `MoodValue`   | 1 through 5                                |
+| `EmotionSlot` | matin, apresmidi, soir                     |
+| `EmotionId`   | 16 values (heureux, confiant, triste, ...) |
 
 ### Database
 
@@ -124,18 +135,21 @@ Start the dev server:
 npm run dev
 ```
 
-Build for production:
+## Build
 
 ```bash
+# Production build
 npm run build
+
+# Preview the production build locally
 npm run preview
 ```
 
 ## Deployment
 
-The production build is a static site. Deploy to any static host (Vercel, Netlify, Cloudflare Pages). Set the same `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables in your hosting provider.
+The production build is a static site. Deploy to any static host (Vercel, Netlify, Cloudflare Pages) and set the same `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables in your hosting provider.
 
-The Vercel build command is `npm run build` with the output directory `dist`.
+The Vercel build command is `npm run build` with output directory `dist`.
 
 ## License
 
