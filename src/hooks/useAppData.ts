@@ -37,6 +37,17 @@ export function useAppData(userId: string) {
     return () => { cancelled = true; };
   }, [userId]);
 
+  // A write failed after an optimistic update: tell the user and resync local
+  // state from the server so the UI never shows a change that wasn't persisted.
+  const handleWriteError = useCallback((e: unknown) => {
+    console.error('[useAppData] write failed, resyncing', e);
+    setError('Could not save your last change — refreshing from the server.');
+    if (!userId) return;
+    loadAllData(userId)
+      .then((d) => { setData(d); setError(null); })
+      .catch((err: unknown) => console.error('[useAppData] resync failed', err));
+  }, [userId]);
+
   // ─── Tasks ────────────────────────────────────────────────────────────────
 
   const handleAddTask = useCallback((weekKey: string, dayKey: string, text: string) => {
@@ -47,21 +58,21 @@ export function useAppData(userId: string) {
           return { ...d, weeks: { ...d.weeks, [weekKey]: { ...week, tasks: [...week.tasks, task] } } };
         }),
       )
-      .catch(console.error);
-  }, [userId]);
+      .catch(handleWriteError);
+  }, [userId, handleWriteError]);
 
   const handleUpdateTask = useCallback(
     (weekKey: string, taskId: string, changes: { text?: string; completed?: boolean }) => {
       setData((d) => updateTask(d, weekKey, taskId, changes));
-      dbUpdateTask(taskId, changes).catch(console.error);
+      dbUpdateTask(taskId, changes).catch(handleWriteError);
     },
-    [],
+    [handleWriteError],
   );
 
   const handleDeleteTask = useCallback((weekKey: string, taskId: string) => {
     setData((d) => deleteTask(d, weekKey, taskId));
-    dbDeleteTask(taskId).catch(console.error);
-  }, []);
+    dbDeleteTask(taskId).catch(handleWriteError);
+  }, [handleWriteError]);
 
   // ─── Habits ───────────────────────────────────────────────────────────────
 
@@ -69,33 +80,33 @@ export function useAppData(userId: string) {
     const sortOrder = dataRef.current.habits.length;
     dbAddHabit(userId, name, sortOrder)
       .then((habit) => setData((d) => addHabit(d, habit)))
-      .catch(console.error);
-  }, [userId]);
+      .catch(handleWriteError);
+  }, [userId, handleWriteError]);
 
   const handleUpdateHabitName = useCallback((habitId: string, name: string) => {
     setData((d) => updateHabit(d, habitId, { name }));
-    dbUpdateHabitName(habitId, name).catch(console.error);
-  }, []);
+    dbUpdateHabitName(habitId, name).catch(handleWriteError);
+  }, [handleWriteError]);
 
   const handleDeleteHabit = useCallback((habitId: string) => {
     setData((d) => deleteHabit(d, habitId));
-    dbDeleteHabit(habitId).catch(console.error);
-  }, []);
+    dbDeleteHabit(habitId).catch(handleWriteError);
+  }, [handleWriteError]);
 
   const handleToggleHabit = useCallback((habitId: string, dayKey: string) => {
     const wasChecked = !!dataRef.current.habits.find((h) => h.id === habitId)?.completions[dayKey];
     setData((d) => toggleHabit(d, habitId, dayKey));
     if (wasChecked) {
-      dbUncheckHabitLog(habitId, dayKey).catch(console.error);
+      dbUncheckHabitLog(habitId, dayKey).catch(handleWriteError);
     } else {
-      dbCheckHabitLog(userId, habitId, dayKey).catch(console.error);
+      dbCheckHabitLog(userId, habitId, dayKey).catch(handleWriteError);
     }
-  }, [userId]);
+  }, [userId, handleWriteError]);
 
   const handleSetMood = useCallback((dayKey: string, mood: MoodValue) => {
     setData((d) => ({ ...d, moods: { ...d.moods, [dayKey]: mood } }));
-    dbSetMood(userId, dayKey, mood).catch(console.error);
-  }, [userId]);
+    dbSetMood(userId, dayKey, mood).catch(handleWriteError);
+  }, [userId, handleWriteError]);
 
   const handleSetCheckin = useCallback((dayKey: string, slot: EmotionSlot, emotion: EmotionId) => {
     setData((d) => ({
@@ -105,30 +116,30 @@ export function useAppData(userId: string) {
         [dayKey]: { ...d.emotionalCheckins[dayKey], [slot]: emotion },
       },
     }));
-    dbSetCheckin(userId, dayKey, slot, emotion).catch(console.error);
-  }, [userId]);
+    dbSetCheckin(userId, dayKey, slot, emotion).catch(handleWriteError);
+  }, [userId, handleWriteError]);
 
   // ─── Todos ─────────────────────────────────────────────────────────────────
 
   const handleAddTodo = useCallback((text: string) => {
     dbAddTodo(userId, text)
       .then((todo) => setData((d) => ({ ...d, todos: [...d.todos, todo] })))
-      .catch(console.error);
-  }, [userId]);
+      .catch(handleWriteError);
+  }, [userId, handleWriteError]);
 
   const handleToggleTodo = useCallback((todoId: string) => {
     setData((d) => {
       const todo = d.todos.find((t) => t.id === todoId);
       if (!todo) return d;
-      dbToggleTodo(todoId, !todo.completed).catch(console.error);
+      dbToggleTodo(todoId, !todo.completed).catch(handleWriteError);
       return { ...d, todos: d.todos.map((t) => t.id === todoId ? { ...t, completed: !t.completed } : t) };
     });
-  }, []);
+  }, [handleWriteError]);
 
   const handleDeleteTodo = useCallback((todoId: string) => {
     setData((d) => ({ ...d, todos: d.todos.filter((t) => t.id !== todoId) }));
-    dbDeleteTodo(todoId).catch(console.error);
-  }, []);
+    dbDeleteTodo(todoId).catch(handleWriteError);
+  }, [handleWriteError]);
 
   return {
     data, loading, error, currentWeekKey,

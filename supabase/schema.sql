@@ -56,13 +56,25 @@ create table if not exists mood_logs (
 
 create index if not exists mood_logs_user_idx on mood_logs(user_id);
 
+create table if not exists emotional_checkins (
+  user_id    uuid        not null references auth.users(id) on delete cascade,
+  day_key    date        not null,
+  slot       text        not null,
+  emotion    text        not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, day_key, slot)
+);
+
+create index if not exists emotional_checkins_user_idx on emotional_checkins(user_id);
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 
-alter table tasks      enable row level security;
-alter table habits     enable row level security;
-alter table habit_logs enable row level security;
-alter table todos      enable row level security;
-alter table mood_logs  enable row level security;
+alter table tasks              enable row level security;
+alter table habits             enable row level security;
+alter table habit_logs         enable row level security;
+alter table todos              enable row level security;
+alter table mood_logs          enable row level security;
+alter table emotional_checkins enable row level security;
 
 -- Tasks: each user sees and writes only their own rows
 create policy "tasks: own data only"
@@ -91,5 +103,11 @@ create policy "todos: own data only"
 -- Mood logs: same
 create policy "mood_logs: own data only"
   on mood_logs for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Emotional check-ins: same
+create policy "emotional_checkins: own data only"
+  on emotional_checkins for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);

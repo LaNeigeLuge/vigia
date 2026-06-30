@@ -10,7 +10,20 @@ import { getWeekStartKey } from '../utils/dateUtils';
 import { getHabitStreak } from '../utils/dataUtils';
 
 function generateId(): string {
+  // Prefer a collision-resistant UUID; fall back for older runtimes.
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/**
+ * Log + rethrow on a failed write so callers (useAppData) can resync state
+ * with the DB and tell the user, instead of silently losing the change.
+ */
+function throwOnError(error: { message: string } | null, label: string): void {
+  if (error) {
+    console.error(`[db] ${label} error`, error);
+    throw error;
+  }
 }
 
 // ─── Load ─────────────────────────────────────────────────────────────────────
@@ -117,7 +130,7 @@ export async function dbAddTask(
     id: task.id, user_id: userId, text, completed: false,
     day_key: dayKey, week_start: weekKey,
   });
-  if (error) console.error('[db] addTask error', error);
+  throwOnError(error, 'addTask');
   return task;
 }
 
@@ -128,12 +141,12 @@ export async function dbUpdateTask(
   if (changes.text      !== undefined) row.text      = changes.text;
   if (changes.completed !== undefined) row.completed = changes.completed;
   const { error } = await supabase.from('tasks').update(row).eq('id', taskId);
-  if (error) console.error('[db] updateTask error', error);
+  throwOnError(error, 'updateTask');
 }
 
 export async function dbDeleteTask(taskId: string): Promise<void> {
   const { error } = await supabase.from('tasks').delete().eq('id', taskId);
-  if (error) console.error('[db] deleteTask error', error);
+  throwOnError(error, 'deleteTask');
 }
 
 // ─── Habits ──────────────────────────────────────────────────────────────────
@@ -143,18 +156,18 @@ export async function dbAddHabit(userId: string, name: string, sortOrder: number
   const { error } = await supabase.from('habits').insert({
     id: habit.id, user_id: userId, name, sort_order: sortOrder, created_at: habit.createdAt,
   });
-  if (error) console.error('[db] addHabit error', error);
+  throwOnError(error, 'addHabit');
   return habit;
 }
 
 export async function dbUpdateHabitName(habitId: string, name: string): Promise<void> {
   const { error } = await supabase.from('habits').update({ name }).eq('id', habitId);
-  if (error) console.error('[db] updateHabit error', error);
+  throwOnError(error, 'updateHabit');
 }
 
 export async function dbDeleteHabit(habitId: string): Promise<void> {
   const { error } = await supabase.from('habits').delete().eq('id', habitId);
-  if (error) console.error('[db] deleteHabit error', error);
+  throwOnError(error, 'deleteHabit');
 }
 
 // ─── Todos ───────────────────────────────────────────────────────────────────
@@ -164,18 +177,18 @@ export async function dbAddTodo(userId: string, text: string): Promise<Todo> {
   const { error } = await supabase.from('todos').insert({
     id: todo.id, user_id: userId, text, completed: false, created_at: todo.createdAt,
   });
-  if (error) console.error('[db] addTodo error', error);
+  throwOnError(error, 'addTodo');
   return todo;
 }
 
 export async function dbToggleTodo(todoId: string, completed: boolean): Promise<void> {
   const { error } = await supabase.from('todos').update({ completed }).eq('id', todoId);
-  if (error) console.error('[db] toggleTodo error', error);
+  throwOnError(error, 'toggleTodo');
 }
 
 export async function dbDeleteTodo(todoId: string): Promise<void> {
   const { error } = await supabase.from('todos').delete().eq('id', todoId);
-  if (error) console.error('[db] deleteTodo error', error);
+  throwOnError(error, 'deleteTodo');
 }
 
 // ─── Emotional check-ins ─────────────────────────────────────────────────────
@@ -184,7 +197,7 @@ export async function dbSetCheckin(userId: string, dayKey: string, slot: Emotion
   const { error } = await supabase
     .from('emotional_checkins')
     .upsert({ user_id: userId, day_key: dayKey, slot, emotion }, { onConflict: 'user_id,day_key,slot' });
-  if (error) console.error('[db] setCheckin error', error);
+  throwOnError(error, 'setCheckin');
 }
 
 // ─── Mood logs ───────────────────────────────────────────────────────────────
@@ -193,17 +206,17 @@ export async function dbSetMood(userId: string, dayKey: string, mood: MoodValue)
   const { error } = await supabase
     .from('mood_logs')
     .upsert({ user_id: userId, day_key: dayKey, mood }, { onConflict: 'user_id,day_key' });
-  if (error) console.error('[db] setMood error', error);
+  throwOnError(error, 'setMood');
 }
 
 // ─── Habit logs ──────────────────────────────────────────────────────────────
 
 export async function dbCheckHabitLog(userId: string, habitId: string, dayKey: string): Promise<void> {
   const { error } = await supabase.from('habit_logs').upsert({ habit_id: habitId, day_key: dayKey, user_id: userId });
-  if (error) console.error('[db] upsertLog error', error);
+  throwOnError(error, 'upsertLog');
 }
 
 export async function dbUncheckHabitLog(habitId: string, dayKey: string): Promise<void> {
   const { error } = await supabase.from('habit_logs').delete().eq('habit_id', habitId).eq('day_key', dayKey);
-  if (error) console.error('[db] deleteLog error', error);
+  throwOnError(error, 'deleteLog');
 }

@@ -1,0 +1,59 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly re-scan (Monday 06:00 UTC) so newly disclosed advisories surface
+    # even when nothing has changed.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Dependency vulnerabilities ──────────────────────────────────────────────
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Report-only: today's advisories are all in build-time tooling (workbox /
+      # rollup / ws). Once `npm audit fix` clears them, drop `continue-on-error`
+      # to make high-severity vulns block the build.
+      - name: Audit (high+ severity)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  # ── Secret scanning ─────────────────────────────────────────────────────────
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so gitleaks scans every commit
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for GitHub Organization accounts;
+          # personal repos run for free. Add it as a repo secret if needed.
+          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # ── New dependencies introduced by a PR ─────────────────────────────────────
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
