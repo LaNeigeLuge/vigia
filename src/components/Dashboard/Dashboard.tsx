@@ -6,6 +6,7 @@ import {
 import type { AppData, EmotionId, EmotionSlot, MoodValue } from '../../types';
 import { DonutChart } from '../ui/DonutChart';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Flame } from '../ui/Flame';
 import { MoodPicker } from './MoodPicker';
 import { EmotionalCheckIn } from './EmotionalCheckIn';
 import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
@@ -191,7 +192,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
                     color: streak > 0 ? T.emerald : T.textMuted,
                     fontWeight: 700, fontFamily: 'Syne, sans-serif',
                   }}>
-                    {streak > 0 ? `🔥 ${streak}` : '—'}
+                    {streak > 0 ? <><Flame /> {streak}</> : '—'}
                   </div>
                 </div>
               );

@@ -1,9 +1,19 @@
 import { useMemo, useState } from 'react';
 import {
-  ComposedChart, Area, Line, Bar, BarChart,
+  ComposedChart, Area, Line, Bar, BarChart, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, LabelList,
 } from 'recharts';
+import { heatColor } from './heatColor';
+import { centeredAvg } from './smooth';
+import { MoodFace } from '../ui/MoodFace';
+import { MOOD_LABEL } from '../ui/mood';
+
+/**
+ * 3 days, not 7: a week-wide window flattens a two-day episode, and this chart
+ * is read to spot short marking periods, not long-run trend.
+ */
+const SMOOTH_WINDOW = 3;
 import type { AppData, Habit, MoodValue } from '../../types';
 import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
@@ -144,6 +154,16 @@ interface MoodChartProps { data: AppData }
 export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
   const { T } = useTheme();
   const points = useChartData(data);
+  const [smooth, setSmooth] = useState(false);
+
+  // Off by default: the spikes are the marking events this chart is read for,
+  // so raw has to stay one tap away.
+  const shown = useMemo(() => {
+    if (!smooth) return points;
+    const pcts  = centeredAvg(points.map((p) => p.pct),  SMOOTH_WINDOW);
+    const moods = centeredAvg(points.map((p) => p.mood), SMOOTH_WINDOW);
+    return points.map((p, i) => ({ ...p, pct: pcts[i] ?? 0, mood: moods[i] }));
+  }, [points, smooth]);
 
   const hasMoods = points.some((p) => p.mood !== null);
 
@@ -155,11 +175,32 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
     <div style={{ padding: '16px 8px 8px' }}>
       {!hasMoods && (
         <div style={{ fontSize: 11, color: T.textMuted, textAlign: 'center', marginBottom: 8 }}>
-          No mood data yet — log your daily mood in the dashboard.
+          Aucune humeur enregistrée — logue-la depuis le résumé.
         </div>
       )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 8px' }}>
+        <button
+          onClick={() => setSmooth((v) => !v)}
+          aria-pressed={smooth}
+          style={{
+            background: T.rowHoverBg,
+            color: smooth ? T.amber : T.textSecondary,
+            border: `1px solid ${smooth ? T.amber : T.glassBorder}`,
+            borderRadius: 4, padding: '4px 8px', minHeight: 30,
+            fontSize: 11, fontFamily: 'DM Sans, sans-serif',
+            cursor: 'pointer', outline: 'none',
+          }}
+          title={smooth
+            ? `Moyenne centrée sur ${SMOOTH_WINDOW} jours`
+            : 'Valeurs quotidiennes brutes'}
+        >
+          {smooth ? `∿ Lissé ${SMOOTH_WINDOW}j` : '∿ Lisser'}
+        </button>
+      </div>
+
       <ResponsiveContainer width="100%" height={200}>
-        <ComposedChart data={points} margin={{ top: 4, right: 32, bottom: 4, left: -20 }}>
+        <ComposedChart data={shown} margin={{ top: 4, right: 32, bottom: 4, left: -20 }}>
           <defs>
             <linearGradient id="habitGrad2" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor={T.emerald} stopOpacity={0.2} />
@@ -193,12 +234,28 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
               if (!active || !payload?.length) return null;
               const pct  = payload.find((p) => p.dataKey === 'pct')?.value as number;
               const mood = payload.find((p) => p.dataKey === 'mood')?.value as number | null;
-              const MOOD_LABELS: Record<number, string> = { 1: '😞 terrible', 2: '😕 bof', 3: '😐 normal', 4: '🙂 bien', 5: '😄 super' };
               return (
                 <TooltipBox>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                  <div>Habits: <b>{pct}%</b></div>
-                  {mood != null && <div>Mood: <b>{MOOD_LABELS[mood] ?? mood}</b></div>}
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                    {label}{smooth && <span style={{ color: T.textMuted, fontWeight: 400 }}> · lissé {SMOOTH_WINDOW}j</span>}
+                  </div>
+                  <div>Habitudes : <b>{pct}%</b></div>
+                  {/* Smoothing makes mood fractional, so neither the face nor
+                      the 1–5 label applies — fall back to the number. */}
+                  {mood != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span>Humeur :</span>
+                      {smooth ? (
+                        <b>{mood.toFixed(1)}</b>
+                      ) : (
+                        <>
+                          <MoodFace mood={mood as MoodValue} size={16} />
+                          <b>{MOOD_LABEL[mood as MoodValue]}</b>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {mood == null && <div style={{ color: T.textMuted }}>Humeur non renseignée</div>}
                 </TooltipBox>
               );
             }}
@@ -209,18 +266,22 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
             stroke={T.emerald} strokeWidth={1.5} strokeOpacity={0.7}
             fill="url(#habitGrad2)" dot={false} activeDot={false}
           />
+          {/* No connectNulls: bridging unlogged days drew a straight line that
+              read as a calm, flat stretch when it was really missing data. The
+              small dot keeps a day surrounded by holes from vanishing, since a
+              dotless line can't render an isolated point. */}
           <Line
             yAxisId="right"
             dataKey="mood"
             stroke={T.amber} strokeWidth={2.5}
-            dot={false} connectNulls
+            dot={{ r: 1.2, fill: T.amber, strokeWidth: 0 }}
             activeDot={{ r: 4, fill: T.amber }}
           />
         </ComposedChart>
       </ResponsiveContainer>
       <Legend items={[
-        { color: T.emerald, opacity: 0.7, label: 'habits %' },
-        { color: T.amber,   opacity: 1,   label: 'mood (1–5)' },
+        { color: T.emerald, opacity: 0.7, label: `habitudes %${smooth ? ` (lissé ${SMOOTH_WINDOW}j)` : ''}` },
+        { color: T.amber,   opacity: 1,   label: `humeur (1–5)${smooth ? ` (lissé ${SMOOTH_WINDOW}j)` : ''}` },
       ]} />
     </div>
   );
@@ -416,10 +477,12 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
               />
               <Bar
                 dataKey="display"
-                fill={T.emerald}
                 radius={[6, 6, 0, 0]}
                 maxBarSize={32}
               >
+                {displayPoints.map((p) => (
+                  <Cell key={p.fullDate} fill={heatColor(p.display, T)} />
+                ))}
                 <LabelList
                   dataKey="display"
                   position="top"

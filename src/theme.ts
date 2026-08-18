@@ -31,6 +31,10 @@ export interface ThemeTokens {
   margin: string;
   /** Darker margin ink for small text. 5.6:1 on the sheet. */
   marginInk: string;
+  /* Weekly-bar heat scale. All ≥3:1 on their own theme's panel (non-text). */
+  heatHigh: string;
+  heatMid: string;
+  heatLow: string;
   ease: [number, number, number, number];
 }
 
@@ -64,6 +68,9 @@ const light: ThemeTokens = {
   sheetDot:      'rgba(169,113,68,0.16)',
   margin:        '#a97144',
   marginInk:     '#8a5a33',
+  heatHigh:      '#9e2b25',   // 7.3:1
+  heatMid:       '#c25d1e',   // 4.2:1
+  heatLow:       '#96700a',   // 4.5:1
   ease:          [0.4, 0, 0.2, 1],
 };
 
@@ -97,6 +104,9 @@ const dark: ThemeTokens = {
   sheetDot:      'rgba(212,165,116,0.14)',
   margin:        '#D4A574',   // 7.9:1 on the dark sheet
   marginInk:     '#E3BE94',
+  heatHigh:      '#e8736b',   // 5.9:1
+  heatMid:       '#f0955a',   // 7.6:1
+  heatLow:       '#d9b544',   // 8.8:1
   ease:          [0.4, 0, 0.2, 1],
 };
 

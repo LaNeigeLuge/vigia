@@ -7,7 +7,9 @@ import {
 import {
   getDayCompletionRate, getDayLevel, getHabitStreak, getWeekCompletionRate,
 } from '../../utils/dataUtils';
+import type { DayLevelTier } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { Flame } from '../ui/Flame';
 import { HabitHeatmap } from './HabitHeatmap';
 import { HabitMoodChart, HabitWeeklyBarChart } from './HabitCharts';
 
@@ -23,7 +25,7 @@ interface StatsProps {
 }
 
 function BigStat({ label, value, sub, accent }: Readonly<{
-  label: string; value: string | number; sub?: string; accent?: string;
+  label: string; value: React.ReactNode; sub?: string; accent?: string;
 }>) {
   const { T } = useTheme();
   const color = accent ?? T.emerald;
@@ -89,12 +91,12 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
     return { dayKey, label: getDayLabel(day), pct, done, total, level: getDayLevel(pct) };
   }), [data, currentWeekKey, weekDays]);
 
-  const levelColors: Record<string, string> = {
-    'Beast Mode':    T.emerald,
-    'On Fire':       T.sage,
-    'Getting There': T.aqua,
-    'Slow Start':    T.amber,
-    'No tasks':      T.textMuted,
+  const levelColors: Record<DayLevelTier, string> = {
+    beast: T.emerald,
+    fire:  T.sage,
+    mid:   T.aqua,
+    slow:  T.amber,
+    none:  T.textMuted,
   };
 
   const border = `1px solid ${T.glassBorder}`;
@@ -122,7 +124,9 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
         <BigStat label="All-Time"      value={data.allTimeStats.totalTasksCompleted} sub="tasks completed" accent={T.sage} />
         <BigStat
           label="Longest Streak"
-          value={data.allTimeStats.longestHabitStreak > 0 ? `🔥 ${data.allTimeStats.longestHabitStreak}` : '—'}
+          value={data.allTimeStats.longestHabitStreak > 0
+            ? <><Flame size={24} /> {data.allTimeStats.longestHabitStreak}</>
+            : '—'}
           sub={data.allTimeStats.longestHabitName || 'days'}
           accent={T.aqua}
         />
@@ -133,7 +137,7 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
         <BlockHeader>Daily Performance — Current Week</BlockHeader>
         <div style={{ display: 'flex' }}>
           {dayRows.map(({ dayKey, label, pct, done, total, level }) => {
-            const col = levelColors[level.label] ?? T.textMuted;
+            const col = levelColors[level.tier];
             return (
               <div key={dayKey} style={{
                 flex: 1, padding: '12px 8px', textAlign: 'center',
@@ -147,7 +151,10 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
                 </div>
                 <div style={{ fontSize: 10, color: T.textMuted, margin: '3px 0' }}>{done}/{total}</div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: col, whiteSpace: 'nowrap' }}>
-                  {level.emoji} {level.label}
+                  {level.tier === 'fire'  && <Flame size={11} />}
+                  {level.tier === 'beast' && <Flame size={11} hot />}
+                  {(level.tier === 'fire' || level.tier === 'beast') && ' '}
+                  {level.label}
                 </div>
               </div>
             );
@@ -190,7 +197,7 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
               }}>
                 <span style={{ fontSize: 12, color: T.textSecondary }}>{h.name}</span>
                 <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Syne, sans-serif', color: col, marginLeft: 8 }}>
-                  {streak > 0 ? `🔥 ${streak}` : '—'}
+                  {streak > 0 ? <><Flame /> {streak}</> : '—'}
                 </span>
               </div>
             );

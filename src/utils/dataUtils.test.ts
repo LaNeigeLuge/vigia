@@ -91,12 +91,19 @@ describe('getWeekCompletionRate', () => {
 });
 
 describe('getDayLevel', () => {
-  it('maps percentages to labels', () => {
-    expect(getDayLevel(0).label).toBe('No tasks');
-    expect(getDayLevel(25).label).toBe('Slow Start');
-    expect(getDayLevel(50).label).toBe('Getting There');
-    expect(getDayLevel(75).label).toBe('On Fire');
-    expect(getDayLevel(100).label).toBe('Beast Mode');
+  // Assert the tier, not the label: the tier keys the colour and icon lookups,
+  // the label is display text that moves with the UI language.
+  it('maps percentages to tiers, boundaries inclusive', () => {
+    expect(getDayLevel(0).tier).toBe('none');
+    expect(getDayLevel(25).tier).toBe('slow');
+    expect(getDayLevel(50).tier).toBe('mid');
+    expect(getDayLevel(75).tier).toBe('fire');
+    expect(getDayLevel(100).tier).toBe('beast');
+  });
+
+  it('puts values just over a boundary in the next tier', () => {
+    expect(getDayLevel(26).tier).toBe('mid');
+    expect(getDayLevel(76).tier).toBe('beast');
   });
 });
 

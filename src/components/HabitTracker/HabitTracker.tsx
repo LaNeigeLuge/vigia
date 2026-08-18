@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AppData, Habit } from '../../types';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Flame } from '../ui/Flame';
 import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
@@ -150,7 +151,7 @@ function HabitCard({
           color: streakColor, paddingRight: 10, whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
         }}>
-          {streak > 0 ? `${streak} j` : '—'}
+          {streak > 0 ? <><Flame /> {streak}</> : '—'}
         </span>
       </div>
 
@@ -379,7 +380,7 @@ export function HabitTracker({
                 fontWeight: 700, color: streakColor,
                 fontFamily: 'Syne, sans-serif',
               }}>
-                {streak > 0 ? `🔥 ${streak}` : '—'}
+                {streak > 0 ? <><Flame /> {streak}</> : '—'}
               </div>
             </motion.div>
           );

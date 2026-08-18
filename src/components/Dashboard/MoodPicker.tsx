@@ -3,14 +3,11 @@ import { motion } from 'framer-motion';
 import type { MoodValue } from '../../types';
 import { formatDayKey, addDays, getDayLabel, getDayNumber } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { MoodFace } from '../ui/MoodFace';
+import { MOOD_LABEL } from '../ui/mood';
 
-const MOODS: { value: MoodValue; emoji: string; label: string }[] = [
-  { value: 5, emoji: '😄', label: 'super' },
-  { value: 4, emoji: '🙂', label: 'ok' },
-  { value: 3, emoji: '😐', label: 'normal' },
-  { value: 2, emoji: '😕', label: 'bof' },
-  { value: 1, emoji: '😞', label: 'pas ouf' },
-];
+// Happiest first, so the row reads left-to-right like the rest of the UI.
+const MOODS: MoodValue[] = [5, 4, 3, 2, 1];
 
 interface MoodRowProps {
   label: string;
@@ -33,7 +30,8 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
         {label}
       </div>
       <div style={{ display: 'flex', gap: 6, flex: 1 }}>
-        {MOODS.map(({ value, emoji, label: moodLabel }) => {
+        {MOODS.map((value) => {
+          const moodLabel = MOOD_LABEL[value];
           const isSelected = currentMood === value;
           return (
             <motion.button
@@ -41,6 +39,7 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
               onClick={() => onSetMood(dayKey, value)}
               whileTap={{ scale: 0.9 }}
               title={moodLabel}
+              aria-pressed={isSelected}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -48,14 +47,17 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
                 alignItems: 'center',
                 gap: 3,
                 padding: '8px 4px',
+                minHeight: 44,
                 borderRadius: 4,
                 border: `1.5px solid ${isSelected ? T.glassBorderEm : T.glassBorder}`,
                 background: isSelected ? T.checkedCellBg : 'transparent',
                 cursor: 'pointer',
                 transition: 'all 0.18s',
+                // Unselected faces recede so the chosen one reads at a glance.
+                opacity: isSelected || currentMood === undefined ? 1 : 0.45,
               }}
             >
-              <span style={{ fontSize: 20, lineHeight: 1 }}>{emoji}</span>
+              <MoodFace mood={value} size={24} />
               <span style={{
                 fontSize: 9,
                 fontFamily: 'DM Sans, sans-serif',

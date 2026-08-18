@@ -101,12 +101,15 @@ export function getDayCompletionRate(data: AppData, weekKey: string, dayKey: str
   };
 }
 
-export function getDayLevel(pct: number): { label: string; emoji: string } {
-  if (pct <= 0) return { label: 'No tasks', emoji: '' };
-  if (pct <= 25) return { label: 'Slow Start', emoji: '' };
-  if (pct <= 50) return { label: 'Getting There', emoji: '' };
-  if (pct <= 75) return { label: 'On Fire', emoji: '🔥' };
-  return { label: 'Beast Mode', emoji: '💪' };
+/** Stable key for colour/icon lookups — the label is display text and moves. */
+export type DayLevelTier = 'none' | 'slow' | 'mid' | 'fire' | 'beast';
+
+export function getDayLevel(pct: number): { label: string; tier: DayLevelTier } {
+  if (pct <= 0)  return { label: 'Rien',       tier: 'none'  };
+  if (pct <= 25) return { label: 'Démarrage',  tier: 'slow'  };
+  if (pct <= 50) return { label: 'En route',   tier: 'mid'   };
+  if (pct <= 75) return { label: 'Ça chauffe', tier: 'fire'  };
+  return           { label: 'À fond',          tier: 'beast' };
 }
 
 export function getHabitStreak(habit: Habit, asOf: Date = new Date()): number {
