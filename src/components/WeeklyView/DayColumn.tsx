@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import type { Task } from '../../types';
 import { DonutChart } from '../ui/DonutChart';
 import { TaskRow } from './TaskRow';
 import { useTheme } from '../../ThemeContext';
+import type { DayEntry } from '../../utils/dataUtils';
 
 interface DayColumnProps {
   dayLabel: string;
@@ -12,8 +12,10 @@ interface DayColumnProps {
   isToday: boolean;
   isPast: boolean;
   isReadOnly: boolean;
-  tasks: Task[];
+  entries: DayEntry[];
   weekKey: string;
+  /** Phone: one day fills the screen instead of being a 130px column. */
+  fullWidth?: boolean;
   onAddTask: (weekKey: string, dayKey: string, text: string) => void;
   onToggleTask: (taskId: string) => void;
   onUpdateTask: (taskId: string, text: string) => void;
@@ -23,7 +25,7 @@ interface DayColumnProps {
 
 export function DayColumn({
   dayLabel, dayNumber, monthLabel, dayKey,
-  isToday, isPast, isReadOnly, tasks, weekKey,
+  isToday, isPast, isReadOnly, entries, weekKey, fullWidth = false,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onConfetti,
 }: Readonly<DayColumnProps>) {
   const { dark, T } = useTheme();
@@ -31,8 +33,10 @@ export function DayColumn({
   const [newTaskText, setNewTaskText] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  const done = tasks.filter((t) => t.completed).length;
-  const total = tasks.length;
+  // A task that left for another day no longer counts toward this day's total.
+  const live = entries.filter((e) => !e.migratedAway);
+  const done = live.filter((e) => e.task.completed).length;
+  const total = live.length;
 
   const wasFullRef = useRef(total > 0 && done === total);
   const isFullNow = total > 0 && done === total;
@@ -56,11 +60,11 @@ export function DayColumn({
     <div
       style={{
         flex: 1,
-        minWidth: 130,
+        minWidth: fullWidth ? 0 : 130,
         display: 'flex',
         flexDirection: 'column',
         opacity: colOpacity,
-        borderRight: `1px solid ${T.glassBorder}`,
+        borderRight: fullWidth ? 'none' : `1px solid ${T.glassBorder}`,
       }}
     >
       {/* Day header */}
@@ -97,11 +101,12 @@ export function DayColumn({
 
       {/* Task list */}
       <div style={{ background: T.glassBg, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {tasks.map((task) => (
+        {entries.map(({ task, migratedAway }) => (
           <TaskRow
-            key={task.id}
+            key={`${task.id}-${migratedAway ? 'from' : 'on'}`}
             task={task}
             isReadOnly={isReadOnly}
+            migratedAway={migratedAway}
             onToggle={() => onToggleTask(task.id)}
             onUpdateText={(text) => onUpdateTask(task.id, text)}
             onDelete={() => onDeleteTask(task.id)}
@@ -123,7 +128,7 @@ export function DayColumn({
                     if (e.key === 'Escape') { setAddingTask(false); setNewTaskText(''); }
                   }}
                   autoFocus
-                  placeholder="Task name…"
+                  placeholder="Nom de la tâche…"
                   className="inline-edit"
                   style={{ fontSize: 12, color: T.textPrimary }}
                 />
@@ -133,14 +138,15 @@ export function DayColumn({
                 onClick={() => setAddingTask(true)}
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
-                  padding: '5px 8px', background: 'none', border: 'none',
-                  cursor: 'pointer', fontSize: 11,
+                  padding: fullWidth ? '14px 12px' : '5px 8px',
+                  background: 'none', border: 'none',
+                  cursor: 'pointer', fontSize: fullWidth ? 14 : 11,
                   color: T.emerald, fontWeight: 600,
                   fontFamily: 'DM Sans, sans-serif',
                   transition: 'opacity 0.15s',
                 }}
               >
-                + Add task
+                + Ajouter une tâche
               </button>
             )}
           </div>

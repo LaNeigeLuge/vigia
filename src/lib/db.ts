@@ -71,6 +71,7 @@ export async function loadAllData(userId: string): Promise<AppData> {
       completed: row.completed as boolean,
       dayKey:    row.day_key   as string,
       weekStart: row.week_start as string,
+      migratedTo: (row.migrated_to as string | null) ?? null,
     });
   }
 
@@ -125,7 +126,7 @@ export async function loadAllData(userId: string): Promise<AppData> {
 export async function dbAddTask(
   userId: string, weekKey: string, dayKey: string, text: string,
 ): Promise<Task> {
-  const task: Task = { id: generateId(), text, completed: false, dayKey, weekStart: weekKey };
+  const task: Task = { id: generateId(), text, completed: false, dayKey, weekStart: weekKey, migratedTo: null };
   const { error } = await supabase.from('tasks').insert({
     id: task.id, user_id: userId, text, completed: false,
     day_key: dayKey, week_start: weekKey,
@@ -135,11 +136,12 @@ export async function dbAddTask(
 }
 
 export async function dbUpdateTask(
-  taskId: string, changes: { text?: string; completed?: boolean },
+  taskId: string, changes: { text?: string; completed?: boolean; migratedTo?: string | null },
 ): Promise<void> {
   const row: Record<string, unknown> = {};
-  if (changes.text      !== undefined) row.text      = changes.text;
-  if (changes.completed !== undefined) row.completed = changes.completed;
+  if (changes.text       !== undefined) row.text         = changes.text;
+  if (changes.completed  !== undefined) row.completed    = changes.completed;
+  if (changes.migratedTo !== undefined) row.migrated_to  = changes.migratedTo;
   const { error } = await supabase.from('tasks').update(row).eq('id', taskId);
   throwOnError(error, 'updateTask');
 }

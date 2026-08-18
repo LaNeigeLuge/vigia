@@ -4,6 +4,12 @@ export interface Task {
   completed: boolean;
   dayKey: string; // 'YYYY-MM-DD'
   weekStart: string; // 'YYYY-MM-DD' (Monday)
+  /**
+   * Bullet-journal migration. The row keeps its original dayKey; this points at
+   * the day it was moved to, so the `>` trace survives on the day it left.
+   * null = never migrated.
+   */
+  migratedTo: string | null;
 }
 
 export interface Habit {
@@ -49,4 +55,4 @@ export interface AppData {
   };
 }
 
-export type Section = 'dashboard' | 'weekly' | 'habits' | 'stats';
+export type Section = 'today' | 'dashboard' | 'weekly' | 'habits' | 'stats';

@@ -140,19 +140,17 @@ function TodoItem({ todo, onToggle, onDelete }: Readonly<{
   onDelete: (id: string) => void;
 }>) {
   const { T } = useTheme();
-  const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="row"
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: '8px 14px',
         borderBottom: `1px solid ${T.rowBorder}`,
-        background: hovered ? T.rowHoverBg : 'transparent',
         transition: 'background 0.15s',
-      }}
+        '--row-hover': T.rowHoverBg,
+      } as React.CSSProperties}
     >
       <input
         type="checkbox"
@@ -170,19 +168,19 @@ function TodoItem({ todo, onToggle, onDelete }: Readonly<{
       }}>
         {todo.text}
       </span>
-      {hovered && (
-        <button
-          onClick={() => onDelete(todo.id)}
-          style={{
-            background: 'none', border: 'none', color: T.textMuted,
-            cursor: 'pointer', fontSize: 16, lineHeight: 1,
-            padding: '0 2px', flexShrink: 0,
-          }}
-          title="Supprimer"
-        >
-          ×
-        </button>
-      )}
+      <button
+        className="row-action"
+        onClick={() => onDelete(todo.id)}
+        style={{
+          background: 'none', border: 'none', color: T.textMuted,
+          cursor: 'pointer', fontSize: 16, lineHeight: 1,
+          padding: '0 2px',
+        }}
+        aria-label={`Supprimer ${todo.text}`}
+        title="Supprimer"
+      >
+        ×
+      </button>
     </div>
   );
 }

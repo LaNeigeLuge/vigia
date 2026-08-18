@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from './ThemeContext';
 import { NavBar } from './components/layout/NavBar';
 import { BottomNav } from './components/layout/BottomNav';
 import { AuthPage } from './components/Auth/AuthPage';
+import { Today } from './components/Today/Today';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { WeeklyView } from './components/WeeklyView/WeeklyView';
 import { HabitTracker } from './components/HabitTracker/HabitTracker';
@@ -37,13 +38,13 @@ function LoadingScreen() {
   const { T } = useTheme();
   return (
     <div style={{
-      minHeight: '100vh', background: T.bg,
+      minHeight: '100dvh', background: T.bg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 12,
     }}>
       <div style={{ fontSize: 36 }}>🌿</div>
       <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>
-        Loading…
+        Chargement…
       </div>
     </div>
   );
@@ -58,12 +59,12 @@ interface AppInnerProps {
 }
 
 function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
-  const [section, setSection] = useState<Section>('dashboard');
+  const [section, setSection] = useState<Section>('today');
   const { dark, T } = useTheme();
 
   const {
     data, loading, error, currentWeekKey,
-    handleAddTask, handleUpdateTask, handleDeleteTask,
+    handleAddTask, handleUpdateTask, handleDeleteTask, handleMigrateTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
@@ -82,7 +83,13 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
   return (
     <div
       className={dark ? 'dark' : ''}
-      style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, position: 'relative', overflow: 'hidden' }}
+      style={{
+        minHeight: '100dvh', background: T.bg, color: T.textPrimary,
+        position: 'relative', overflow: 'hidden',
+        // Landscape on a notched phone eats the left/right edges.
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
     >
       {/* Grid */}
       <div className={dark ? 'bg-grid-dark' : 'bg-grid-light'} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
@@ -101,7 +108,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🌿</div>
-            <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>Loading your data…</div>
+            <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>Chargement de tes données…</div>
           </div>
         </div>
       )}
@@ -119,9 +126,18 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
       </div>
 
       {/* Content */}
-      <main style={{ position: 'relative', zIndex: 1, paddingBottom: 72 }}>
+      {/* 58px nav + 14px breathing room + whatever the gesture bar takes */}
+      <main style={{ position: 'relative', zIndex: 1, paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         <AnimatePresence mode="wait">
           <motion.div key={section} variants={sectionVariants} initial="initial" animate="animate" exit="exit">
+            {section === 'today' && (
+              <Today
+                data={data}
+                onAddTask={handleAddTask} onToggleTask={toggleTask}
+                onUpdateTask={updateTaskText} onDeleteTask={handleDeleteTask}
+                onMigrateTask={handleMigrateTask} onToggleHabit={handleToggleHabit}
+              />
+            )}
             {section === 'dashboard' && <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} onSetCheckin={handleSetCheckin} />}
             {section === 'weekly' && (
               <WeeklyView
@@ -161,7 +177,7 @@ function AuthGate() {
 
   if (!session) {
     return (
-      <div className="" style={{ background: T.bg, minHeight: '100vh' }}>
+      <div className="" style={{ background: T.bg, minHeight: '100dvh' }}>
         <AuthPage onSignIn={signIn} onSignUp={signUp} />
       </div>
     );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { EmotionId, EmotionSlot } from '../../types';
 import { formatDayKey, addDays } from '../../utils/dateUtils';
@@ -28,9 +28,9 @@ const EMOTIONS: Emotion[] = [
 ];
 
 const SLOTS: { id: EmotionSlot; label: string }[] = [
-  { id: 'matin',     label: 'Morning'   },
-  { id: 'apresmidi', label: 'Afternoon' },
-  { id: 'soir',      label: 'Night'     },
+  { id: 'matin',     label: 'Matin'   },
+  { id: 'apresmidi', label: 'Après-midi' },
+  { id: 'soir',      label: 'Soir'     },
 ];
 
 // ─── Pill-segment SVG helpers ─────────────────────────────────────────────────
@@ -88,6 +88,7 @@ function EmotionWheel({ slotLabel, selected, onSelect }: Readonly<WheelProps>) {
   const [hovered,  setHovered]  = useState<EmotionId | null>(null);
   const [editing,  setEditing]  = useState(false);
   const [ringHover, setRingHover] = useState(false);
+  const armedRef = useRef<EmotionId | null>(null);
 
   const showWheel = !selected || editing;
   const selEmo    = selected ? EMOTIONS.find((e) => e.id === selected) : null;
@@ -95,8 +96,21 @@ function EmotionWheel({ slotLabel, selected, onSelect }: Readonly<WheelProps>) {
   const badge     = hovEmo ?? selEmo;
 
   const handleSelect = (id: EmotionId) => {
+    armedRef.current = null;
     onSelect(id);
     setEditing(false);
+  };
+
+  // A mouse reveals the label on hover before the click, so one click commits.
+  // A finger has no hover: the first tap reveals the label, a second tap on the
+  // same segment commits. Any other segment just moves the preview.
+  const handlePointerUp = (e: React.PointerEvent, id: EmotionId) => {
+    if (e.pointerType === 'mouse' || armedRef.current === id) {
+      handleSelect(id);
+      return;
+    }
+    armedRef.current = id;
+    setHovered(id);
   };
 
   return (
@@ -136,7 +150,7 @@ function EmotionWheel({ slotLabel, selected, onSelect }: Readonly<WheelProps>) {
                     }}
                     onMouseEnter={() => setHovered(emotion.id)}
                     onMouseLeave={() => setHovered(null)}
-                    onClick={() => handleSelect(emotion.id)}
+                    onPointerUp={(e) => handlePointerUp(e, emotion.id)}
                   />
                 );
               })}
@@ -329,7 +343,7 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
           fontSize: 10, textTransform: 'uppercase',
           letterSpacing: '0.12em', color: T.emerald,
         }}>
-          Emotional Check-ins
+          Check-in émotionnel
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {([0, 1] as const).map((offset) => {
@@ -344,11 +358,11 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
                   background: active ? T.emerald : 'transparent',
                   color: active ? '#fff' : T.textMuted,
                   border: `1px solid ${active ? T.emerald : T.glassBorder}`,
-                  borderRadius: 20, padding: '3px 10px',
+                  borderRadius: 20, padding: '8px 14px', minHeight: 36,
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {offset === 0 ? 'Today' : 'Yesterday'}
+                {offset === 0 ? "Aujourd'hui" : 'Hier'}
               </button>
             );
           })}

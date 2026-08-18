@@ -24,6 +24,13 @@ export interface ThemeTokens {
   glowEm: string;
   tooltipBg: string;
   tooltipBorder: string;
+  /* Bullet-journal sheet (Today) */
+  sheet: string;
+  sheetDot: string;
+  /** Margin rule + notation glyphs. 3.9:1 on the sheet — large text / rules only. */
+  margin: string;
+  /** Darker margin ink for small text. 5.6:1 on the sheet. */
+  marginInk: string;
   ease: [number, number, number, number];
 }
 
@@ -53,6 +60,10 @@ const light: ThemeTokens = {
   glowEm:        'none',
   tooltipBg:     'rgba(248,249,245,0.98)',
   tooltipBorder: 'rgba(74,124,89,0.18)',
+  sheet:         '#fbfaf6',
+  sheetDot:      'rgba(169,113,68,0.16)',
+  margin:        '#a97144',
+  marginInk:     '#8a5a33',
   ease:          [0.4, 0, 0.2, 1],
 };
 
@@ -82,6 +93,10 @@ const dark: ThemeTokens = {
   glowEm:        'none',
   tooltipBg:     'rgba(10,15,10,0.95)',
   tooltipBorder: 'rgba(107,155,127,0.25)',
+  sheet:         '#161a15',
+  sheetDot:      'rgba(212,165,116,0.14)',
+  margin:        '#D4A574',   // 7.9:1 on the dark sheet
+  marginInk:     '#E3BE94',
   ease:          [0.4, 0, 0.2, 1],
 };
 

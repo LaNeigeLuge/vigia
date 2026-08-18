@@ -69,6 +69,16 @@ export function useAppData(userId: string) {
     [handleWriteError],
   );
 
+  /**
+   * Bullet-journal migration. The row stays on its origin day so the `>` trace
+   * survives there; `migratedTo` is where it lands. Pass null to cancel — that
+   * is the undo path for a mis-tap.
+   */
+  const handleMigrateTask = useCallback((weekKey: string, taskId: string, toDayKey: string | null) => {
+    setData((d) => updateTask(d, weekKey, taskId, { migratedTo: toDayKey }));
+    dbUpdateTask(taskId, { migratedTo: toDayKey }).catch(handleWriteError);
+  }, [handleWriteError]);
+
   const handleDeleteTask = useCallback((weekKey: string, taskId: string) => {
     setData((d) => deleteTask(d, weekKey, taskId));
     dbDeleteTask(taskId).catch(handleWriteError);
@@ -143,7 +153,7 @@ export function useAppData(userId: string) {
 
   return {
     data, loading, error, currentWeekKey,
-    handleAddTask, handleUpdateTask, handleDeleteTask,
+    handleAddTask, handleUpdateTask, handleDeleteTask, handleMigrateTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,

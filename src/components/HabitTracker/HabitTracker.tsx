@@ -5,6 +5,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 
@@ -23,6 +24,7 @@ function NavBtn({ onClick, disabled = false, children }: Readonly<{
   const { T } = useTheme();
   return (
     <button
+      className="tap-target"
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -39,15 +41,16 @@ function NavBtn({ onClick, disabled = false, children }: Readonly<{
   );
 }
 
-function HabitNameCell({ habit, onUpdate, onDelete }: Readonly<{
+function HabitNameCell({ habit, onUpdate, onDelete, fill = false }: Readonly<{
   habit: Habit;
   onUpdate: (name: string) => void;
   onDelete: () => void;
+  /** Card layout: take the row's width instead of the grid's fixed column. */
+  fill?: boolean;
 }>) {
   const { T } = useTheme();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(habit.name);
-  const [hovered, setHovered] = useState(false);
 
   const commit = () => {
     setEditing(false);
@@ -58,11 +61,13 @@ function HabitNameCell({ habit, onUpdate, onDelete }: Readonly<{
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="row"
       style={{
         display: 'flex', alignItems: 'center', gap: 4,
-        padding: '0 10px', minWidth: 172, maxWidth: 172, height: '100%',
+        padding: '0 10px', height: '100%',
+        ...(fill
+          ? { flex: 1, minWidth: 0 }
+          : { minWidth: 172, maxWidth: 172 }),
       }}
     >
       {editing ? (
@@ -83,29 +88,114 @@ function HabitNameCell({ habit, onUpdate, onDelete }: Readonly<{
           onClick={() => setEditing(true)}
           style={{
             flex: 1, textAlign: 'left', background: 'none', border: 'none',
-            cursor: 'text', fontSize: 12, fontWeight: 500,
-            color: T.textSecondary, overflow: 'hidden',
+            cursor: 'text', fontSize: fill ? 15 : 12, fontWeight: fill ? 600 : 500,
+            minHeight: fill ? 44 : undefined,
+            color: fill ? T.textPrimary : T.textSecondary, overflow: 'hidden',
             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             padding: 0, fontFamily: 'DM Sans, sans-serif',
           }}
-          title="Click to rename"
+          title="Renommer"
         >
           {habit.name}
         </button>
       )}
-      {hovered && !editing && (
+      {!editing && (
         <button
+          className="row-action"
           onClick={onDelete}
           style={{
             background: 'none', border: 'none', color: T.textMuted,
             cursor: 'pointer', fontSize: 14, lineHeight: 1,
-            padding: '0 2px', flexShrink: 0, transition: 'color 0.15s',
+            padding: '0 2px', transition: 'color 0.15s',
           }}
-          title="Delete habit"
+          aria-label={`Supprimer l'habitude ${habit.name}`}
+          title="Supprimer"
         >
           ×
         </button>
       )}
+    </div>
+  );
+}
+
+/** Phone: one card per habit, with 7 tappable 44px day cells. */
+function HabitCard({
+  habit, weekDays, viewWeekKey, onUpdateName, onDelete, onToggle,
+}: Readonly<{
+  habit: Habit;
+  weekDays: Date[];
+  viewWeekKey: string;
+  onUpdateName: (name: string) => void;
+  onDelete: () => void;
+  onToggle: (dayKey: string) => void;
+}>) {
+  const { T } = useTheme();
+  const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
+  const streak = getHabitStreak(habit);
+
+  let streakColor = T.textMuted;
+  if (streak >= 7) streakColor = T.emerald;
+  else if (streak >= 4) streakColor = T.sage;
+  else if (streak >= 1) streakColor = T.aqua;
+
+  return (
+    <div className="glass" style={{ borderRadius: 2, marginBottom: 10, overflow: 'hidden' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '4px 4px 4px 0', borderBottom: `1px solid ${T.glassBorderEm}`,
+      }}>
+        <HabitNameCell habit={habit} onUpdate={onUpdateName} onDelete={onDelete} fill />
+        <span style={{
+          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+          color: streakColor, paddingRight: 10, whiteSpace: 'nowrap',
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {streak > 0 ? `${streak} j` : '—'}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex' }}>
+        {weekDays.map((day) => {
+          const dayKey = formatDayKey(day);
+          const checked = !!habit.completions[dayKey];
+          return (
+            <button
+              key={dayKey}
+              onClick={() => onToggle(dayKey)}
+              aria-pressed={checked}
+              aria-label={`${habit.name} — ${getDayLabel(day)} ${formatDayKey(day).slice(8)}`}
+              style={{
+                flex: 1, minWidth: 0, minHeight: 44,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 2,
+                background: checked ? T.checkedCellBg : 'transparent',
+                border: 'none', borderRight: `1px solid ${T.glassBorder}`,
+                cursor: 'pointer', transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                fontSize: 9, color: T.textMuted,
+                fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                textTransform: 'uppercase',
+              }}>
+                {getDayLabel(day)}
+              </span>
+              {/* Glyph, not colour alone. */}
+              <span style={{
+                fontSize: 15, lineHeight: 1,
+                fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                color: checked ? T.emerald : T.textMuted,
+              }}>
+                {checked ? '✓' : '·'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: '8px 12px', borderTop: `1px solid ${T.glassBorder}` }}>
+        <ProgressBar done={done} total={total} height={5} showLabel />
+      </div>
     </div>
   );
 }
@@ -115,6 +205,7 @@ export function HabitTracker({
   onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
 }: Readonly<HabitTrackerProps>) {
   const { T } = useTheme();
+  const isMobile = useIsMobile();
   const [addingHabit, setAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
@@ -153,8 +244,8 @@ export function HabitTracker({
   };
 
   return (
-    <div style={{ padding: '20px', overflowX: 'auto' }}>
-      <div style={{ minWidth: 620 }}>
+    <div style={{ padding: isMobile ? '12px' : '20px', overflowX: isMobile ? 'visible' : 'auto' }}>
+      <div style={{ minWidth: isMobile ? 0 : 620 }}>
 
         {/* Week navigation */}
         <div className="glass" style={{
@@ -177,15 +268,31 @@ export function HabitTracker({
                 fontSize: 11, fontWeight: 600, borderRadius: 2, fontFamily: 'DM Sans, sans-serif',
               }}
             >
-              Today
+              Aujourd'hui
             </button>
           )}
         </div>
 
+        {isMobile ? (
+          <div style={{ marginTop: 10 }}>
+            {data.habits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                weekDays={weekDays}
+                viewWeekKey={viewWeekKey}
+                onUpdateName={(name) => onUpdateHabitName(habit.id, name)}
+                onDelete={() => onDeleteHabit(habit.id)}
+                onToggle={(dayKey) => onToggleHabit(habit.id, dayKey)}
+              />
+            ))}
+          </div>
+        ) : (
+        <>
         {/* Header row */}
         <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
           <div style={{ ...thStyle, minWidth: 172, maxWidth: 172, textAlign: 'left', paddingLeft: 10 }}>
-            Habit
+            Habitude
           </div>
           {weekDays.map((day) => (
             <div key={formatDayKey(day)} style={thStyle}>
@@ -195,8 +302,8 @@ export function HabitTracker({
               </div>
             </div>
           ))}
-          <div style={{ ...thStyle, minWidth: 92, maxWidth: 92 }}>Week</div>
-          <div style={{ ...thStyle, minWidth: 58, maxWidth: 58 }}>Streak</div>
+          <div style={{ ...thStyle, minWidth: 92, maxWidth: 92 }}>Semaine</div>
+          <div style={{ ...thStyle, minWidth: 58, maxWidth: 58 }}>Série</div>
         </div>
 
         {/* Habit rows */}
@@ -277,6 +384,8 @@ export function HabitTracker({
             </motion.div>
           );
         })}
+        </>
+        )}
 
         {/* Add habit row */}
         <div style={{ borderBottom: border, background: T.glassBg }}>
@@ -292,7 +401,7 @@ export function HabitTracker({
                   if (e.key === 'Escape') { setAddingHabit(false); setNewHabitName(''); }
                 }}
                 autoFocus
-                placeholder="Habit name…"
+                placeholder="Nom de l'habitude…"
                 className="inline-edit"
                 style={{ fontSize: 12, color: T.textPrimary, fontWeight: 500, maxWidth: 220 }}
               />
@@ -302,12 +411,13 @@ export function HabitTracker({
               onClick={() => setAddingHabit(true)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: '9px 10px', fontSize: 12,
+                padding: isMobile ? '14px 12px' : '9px 10px',
+                fontSize: isMobile ? 14 : 12,
                 color: T.emerald, fontWeight: 600,
                 fontFamily: 'DM Sans, sans-serif',
               }}
             >
-              + Add habit
+              + Ajouter une habitude
             </button>
           )}
         </div>

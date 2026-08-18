@@ -8,8 +8,9 @@ import {
   getDayLabel, getDayNumber, getMonthLabel,
   getWeekDays, isDatePast, isDateToday, parseDayKey,
 } from '../../utils/dateUtils';
-import { getDayTasks } from '../../utils/dataUtils';
+import { getDayEntries } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface WeeklyViewProps {
   data: AppData;
@@ -29,7 +30,9 @@ export function WeeklyView({
   onAddTodo, onToggleTodo, onDeleteTodo,
 }: Readonly<WeeklyViewProps>) {
   const { T } = useTheme();
+  const isMobile = useIsMobile();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
+  const [selectedDayKey, setSelectedDayKey] = useState(() => formatDayKey(new Date()));
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayColRef = useRef<HTMLDivElement>(null);
 
@@ -37,14 +40,25 @@ export function WeeklyView({
   const weekStart = parseDayKey(viewWeekKey);
   const weekDays = getWeekDays(weekStart);
 
+  // Changing week has to move the phone's selected day into that week, or the
+  // panel below the strip would render a day that isn't on screen. Derived
+  // rather than synced in an effect, so there's no second render to clamp it.
+  const dayKeys = weekDays.map(formatDayKey);
+  const todayKey = formatDayKey(new Date());
+  let activeDayKey = selectedDayKey;
+  if (!dayKeys.includes(activeDayKey)) {
+    activeDayKey = dayKeys.includes(todayKey) ? todayKey : dayKeys[0];
+  }
+
   useEffect(() => {
+    if (isMobile) return;
     if (isCurrentWeek && scrollRef.current && todayColRef.current) {
       const container = scrollRef.current;
       const col = todayColRef.current;
       const offset = col.offsetLeft - container.offsetWidth / 2 + col.offsetWidth / 2;
       container.scrollTo({ left: offset, behavior: 'smooth' });
     }
-  }, [isCurrentWeek, viewWeekKey]);
+  }, [isCurrentWeek, viewWeekKey, isMobile]);
 
   const handleConfetti = useCallback(() => {
     confetti({
@@ -61,8 +75,31 @@ export function WeeklyView({
     setViewWeekKey(next);
   };
 
+  const renderDay = (dayKey: string, fullWidth: boolean) => {
+    const day = parseDayKey(dayKey);
+    return (
+      <DayColumn
+        dayLabel={getDayLabel(day)}
+        dayNumber={getDayNumber(day)}
+        monthLabel={getMonthLabel(day)}
+        dayKey={dayKey}
+        isToday={isDateToday(day)}
+        isPast={isDatePast(day)}
+        isReadOnly={!isCurrentWeek}
+        entries={getDayEntries(data, dayKey)}
+        weekKey={viewWeekKey}
+        fullWidth={fullWidth}
+        onAddTask={onAddTask}
+        onToggleTask={(taskId) => onToggleTask(viewWeekKey, taskId)}
+        onUpdateTask={(taskId, text) => onUpdateTask(viewWeekKey, taskId, text)}
+        onDeleteTask={(taskId) => onDeleteTask(viewWeekKey, taskId)}
+        onConfetti={isCurrentWeek ? handleConfetti : undefined}
+      />
+    );
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: isMobile ? '12px' : '20px' }}>
       {/* Week nav header */}
       <div
         className="glass"
@@ -90,7 +127,7 @@ export function WeeklyView({
               background: T.trackBg,
               padding: '2px 7px', borderRadius: 2,
             }}>
-              Read-only
+              Lecture seule
             </span>
           )}
         </div>
@@ -108,55 +145,97 @@ export function WeeklyView({
               borderRadius: 2, fontFamily: 'DM Sans, sans-serif',
             }}
           >
-            Today
+            Aujourd'hui
           </button>
         )}
       </div>
 
-      {/* Scrollable day columns */}
-      <div
-        ref={scrollRef}
-        className="weekly-scroll"
-        style={{
-          display: 'flex',
-          border: `1px solid ${T.glassBorder}`,
-          borderTop: 'none',
-          borderRadius: '0 0 2px 2px',
-          overflow: 'hidden',
-        }}
-      >
-        {weekDays.map((day, i) => {
-          const dayKey = formatDayKey(day);
-          const isToday = isDateToday(day);
-          const isPast = isDatePast(day);
-          const tasks = getDayTasks(data, viewWeekKey, dayKey);
+      {isMobile ? (
+        /* Phone: pick a day, then that day fills the screen. No sideways scroll. */
+        <>
+          <div style={{
+            display: 'flex', gap: 4,
+            border: `1px solid ${T.glassBorder}`, borderTop: 'none',
+            background: T.glassBg, padding: '8px 6px',
+          }}>
+            {weekDays.map((day) => {
+              const dayKey = formatDayKey(day);
+              const selected = dayKey === activeDayKey;
+              const entries = getDayEntries(data, dayKey).filter((e) => !e.migratedAway);
+              const allDone = entries.length > 0 && entries.every((e) => e.task.completed);
 
-          return (
-            <div
-              key={dayKey}
-              ref={isToday ? todayColRef : undefined}
-              style={{ borderLeft: i > 0 ? `1px solid ${T.glassBorder}` : 'none' }}
-            >
-              <DayColumn
-                dayLabel={getDayLabel(day)}
-                dayNumber={getDayNumber(day)}
-                monthLabel={getMonthLabel(day)}
-                dayKey={dayKey}
-                isToday={isToday}
-                isPast={isPast}
-                isReadOnly={!isCurrentWeek}
-                tasks={tasks}
-                weekKey={viewWeekKey}
-                onAddTask={onAddTask}
-                onToggleTask={(taskId) => onToggleTask(viewWeekKey, taskId)}
-                onUpdateTask={(taskId, text) => onUpdateTask(viewWeekKey, taskId, text)}
-                onDeleteTask={(taskId) => onDeleteTask(viewWeekKey, taskId)}
-                onConfetti={isCurrentWeek ? handleConfetti : undefined}
-              />
-            </div>
-          );
-        })}
-      </div>
+              return (
+                <button
+                  key={dayKey}
+                  onClick={() => setSelectedDayKey(dayKey)}
+                  aria-pressed={selected}
+                  aria-label={`${getDayLabel(day)} ${getDayNumber(day)}`}
+                  style={{
+                    flex: 1, minWidth: 0, minHeight: 52,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 2,
+                    background: selected ? T.checkedCellBg : 'transparent',
+                    border: `1px solid ${selected ? T.glassBorderEm : 'transparent'}`,
+                    borderRadius: 2, cursor: 'pointer',
+                    color: isDateToday(day) ? T.emerald : T.textSecondary,
+                  }}
+                >
+                  <span style={{
+                    fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
+                    textTransform: 'uppercase', letterSpacing: '0.04em',
+                  }}>
+                    {getDayLabel(day)}
+                  </span>
+                  <span style={{
+                    fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 15,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {getDayNumber(day)}
+                  </span>
+                  {/* Shape, not colour alone — a dot only when the day is clear. */}
+                  <span style={{
+                    width: 5, height: 5, borderRadius: '50%',
+                    background: allDone ? T.emerald : 'transparent',
+                  }} />
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{
+            border: `1px solid ${T.glassBorder}`, borderTop: 'none',
+            borderRadius: '0 0 2px 2px', overflow: 'hidden',
+          }}>
+            {renderDay(activeDayKey, true)}
+          </div>
+        </>
+      ) : (
+        /* Scrollable day columns */
+        <div
+          ref={scrollRef}
+          className="weekly-scroll"
+          style={{
+            display: 'flex',
+            border: `1px solid ${T.glassBorder}`,
+            borderTop: 'none',
+            borderRadius: '0 0 2px 2px',
+            overflow: 'hidden',
+          }}
+        >
+          {weekDays.map((day, i) => {
+            const dayKey = formatDayKey(day);
+            return (
+              <div
+                key={dayKey}
+                ref={isDateToday(day) ? todayColRef : undefined}
+                style={{ borderLeft: i > 0 ? `1px solid ${T.glassBorder}` : 'none' }}
+              >
+                {renderDay(dayKey, false)}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Backlog intemporel */}
       <Backlog
@@ -175,6 +254,7 @@ function NavBtn({ onClick, disabled = false, children }: Readonly<{
   const { T } = useTheme();
   return (
     <button
+      className="tap-target"
       onClick={onClick}
       disabled={disabled}
       style={{

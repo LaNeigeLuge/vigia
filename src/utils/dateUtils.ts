@@ -1,4 +1,5 @@
-import { format, startOfWeek, addDays, isToday, isPast, isSameDay, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, isToday, isPast, isSameDay, parseISO, getISOWeek } from 'date-fns';
+import { fr } from 'date-fns/locale';
 export { addDays } from 'date-fns';
 
 export function getWeekStart(date: Date = new Date()): Date {
@@ -35,11 +36,11 @@ export function isSameDate(a: Date, b: Date): boolean {
 
 export function formatWeekLabel(weekStart: Date): string {
   const end = addDays(weekStart, 6);
-  return `Week of ${format(weekStart, 'MMMM d')} – ${format(end, 'MMMM d, yyyy')}`;
+  return `Semaine du ${format(weekStart, 'd MMMM', { locale: fr })} au ${format(end, 'd MMMM yyyy', { locale: fr })}`;
 }
 
 export function getDayLabel(date: Date): string {
-  return format(date, 'EEE');
+  return format(date, 'EEE', { locale: fr });
 }
 
 export function getDayNumber(date: Date): string {
@@ -52,4 +53,18 @@ export function getMonthLabel(date: Date): string {
 
 export function addWeeks(date: Date, count: number): Date {
   return addDays(date, count * 7);
+}
+
+// ─── French labels (Today screen) ───────────────────────────────────────────
+
+export function getWeekdayLabelFr(date: Date): string {
+  return format(date, 'EEEE', { locale: fr });
+}
+
+export function getMonthYearLabelFr(date: Date): string {
+  return format(date, 'MMMM yyyy', { locale: fr });
+}
+
+export function getISOWeekNumber(date: Date): number {
+  return getISOWeek(date);
 }

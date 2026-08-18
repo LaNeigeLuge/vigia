@@ -14,6 +14,10 @@ create table if not exists tasks (
   created_at  timestamptz not null default now()
 );
 
+-- Bullet-journal migration: the day this task was moved to. The row keeps its
+-- original day_key so the `>` trace stays readable on the day it left.
+alter table tasks add column if not exists migrated_to date;
+
 create table if not exists habits (
   id          text        primary key,
   user_id     uuid        not null references auth.users(id) on delete cascade,

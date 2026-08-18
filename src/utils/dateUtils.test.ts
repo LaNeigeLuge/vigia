@@ -61,6 +61,6 @@ describe('isDatePast', () => {
 
 describe('formatWeekLabel', () => {
   it('spans Monday to the following Sunday', () => {
-    expect(formatWeekLabel(parseDayKey('2026-06-29'))).toBe('Week of June 29 – July 5, 2026');
+    expect(formatWeekLabel(parseDayKey('2026-06-29'))).toBe('Semaine du 29 juin au 5 juillet 2026');
   });
 });

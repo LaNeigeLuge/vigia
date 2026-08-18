@@ -12,6 +12,7 @@ import {
   addHabit,
   deleteHabit,
   getLastFourWeekStarts,
+  getDayEntries,
 } from './dataUtils';
 
 const WEEK = '2026-06-29';
@@ -24,14 +25,60 @@ function makeData(): AppData {
       [WEEK]: {
         weekStart: WEEK,
         tasks: [
-          { id: 't1', text: 'a', completed: true,  dayKey: '2026-06-29', weekStart: WEEK },
-          { id: 't2', text: 'b', completed: false, dayKey: '2026-06-29', weekStart: WEEK },
-          { id: 't3', text: 'c', completed: true,  dayKey: '2026-06-30', weekStart: WEEK },
+          { id: 't1', text: 'a', completed: true,  dayKey: '2026-06-29', weekStart: WEEK, migratedTo: null },
+          { id: 't2', text: 'b', completed: false, dayKey: '2026-06-29', weekStart: WEEK, migratedTo: null },
+          { id: 't3', text: 'c', completed: true,  dayKey: '2026-06-30', weekStart: WEEK, migratedTo: null },
         ],
       },
     },
   };
 }
+
+describe('getDayEntries', () => {
+  // A migrated task has to show on both days, and the origin day must survive
+  // the migration crossing a week boundary.
+  const NEXT_WEEK = '2026-07-06';
+  function migrated(): AppData {
+    const data = makeData();
+    return {
+      ...data,
+      weeks: {
+        ...data.weeks,
+        [WEEK]: {
+          weekStart: WEEK,
+          tasks: [
+            { id: 'm1', text: 'facture', completed: false, dayKey: '2026-07-05', weekStart: WEEK, migratedTo: NEXT_WEEK },
+          ],
+        },
+      },
+    };
+  }
+
+  it('leaves a struck `>` trace on the day the task left', () => {
+    expect(getDayEntries(migrated(), '2026-07-05')).toEqual([
+      { task: expect.objectContaining({ id: 'm1' }), migratedAway: true },
+    ]);
+  });
+
+  it('shows the task live on the day it landed, across a week boundary', () => {
+    expect(getDayEntries(migrated(), NEXT_WEEK)).toEqual([
+      { task: expect.objectContaining({ id: 'm1' }), migratedAway: false },
+    ]);
+  });
+
+  it('never lists the same task twice for one day', () => {
+    const data = migrated();
+    data.weeks[WEEK].tasks[0].migratedTo = '2026-07-05'; // migrated onto itself
+    expect(getDayEntries(data, '2026-07-05')).toHaveLength(1);
+  });
+
+  it('returns plain entries for a task that was never migrated', () => {
+    expect(getDayEntries(makeData(), '2026-06-29')).toEqual([
+      { task: expect.objectContaining({ id: 't1' }), migratedAway: false },
+      { task: expect.objectContaining({ id: 't2' }), migratedAway: false },
+    ]);
+  });
+});
 
 describe('getWeekCompletionRate', () => {
   it('counts done vs total tasks for the week', () => {

@@ -9,9 +9,10 @@ interface NavBarProps {
 }
 
 const sections: { id: Section; label: string }[] = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'weekly',    label: 'Weekly View' },
-  { id: 'habits',    label: 'Habit Tracker' },
+  { id: 'today',     label: "Aujourd'hui" },
+  { id: 'dashboard', label: 'Résumé' },
+  { id: 'weekly',    label: 'Semaine' },
+  { id: 'habits',    label: 'Habitudes' },
   { id: 'stats',     label: 'Stats' },
 ];
 

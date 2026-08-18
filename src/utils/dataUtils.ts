@@ -55,6 +55,36 @@ export function getDayTasks(data: AppData, weekKey: string, dayKey: string): Tas
   return getWeekTasks(data, weekKey).filter((t) => t.dayKey === dayKey);
 }
 
+export interface DayEntry {
+  task: Task;
+  /** True on the day the task left — render it as a struck-through `>`. */
+  migratedAway: boolean;
+}
+
+/**
+ * Every row that belongs on `dayKey`: the tasks written there, plus the ones
+ * migrated in from another day. A migrated task shows twice — as `>` on the day
+ * it left, and as a live entry on the day it landed.
+ *
+ * Scans across weeks because a migration can cross a Sunday→Monday boundary,
+ * which the per-week index can't express.
+ */
+// ponytail: full scan of every task — a personal log is a few thousand rows.
+// Build a dayKey index if that ever shows up in a profile.
+export function getDayEntries(data: AppData, dayKey: string): DayEntry[] {
+  const entries: DayEntry[] = [];
+  for (const week of Object.values(data.weeks)) {
+    for (const task of week.tasks) {
+      if (task.migratedTo === dayKey && task.dayKey !== dayKey) {
+        entries.push({ task, migratedAway: false });
+      } else if (task.dayKey === dayKey) {
+        entries.push({ task, migratedAway: !!task.migratedTo });
+      }
+    }
+  }
+  return entries;
+}
+
 export function getWeekCompletionRate(data: AppData, weekKey: string): { done: number; total: number } {
   const tasks = getWeekTasks(data, weekKey);
   return {

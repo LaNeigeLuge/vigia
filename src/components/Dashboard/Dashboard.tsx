@@ -11,6 +11,7 @@ import { EmotionalCheckIn } from './EmotionalCheckIn';
 import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getDailyQuote, getDayCompletionRate, getHabitStreak, getWeekCompletionRate } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0) => ({
@@ -60,6 +61,7 @@ function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
 
 export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Readonly<DashboardProps>) {
   const { T } = useTheme();
+  const isMobile = useIsMobile();
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
   const { done, total } = getWeekCompletionRate(data, currentWeekKey);
@@ -72,7 +74,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
   }), [data, currentWeekKey, weekDays]);
 
   return (
-    <div style={{ padding: '20px', maxWidth: 920, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '12px' : '20px', maxWidth: 920, margin: '0 auto' }}>
 
       {/* Mood picker */}
       <motion.div {...fadeUp(0)}>
@@ -98,21 +100,22 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
       </motion.div>
 
       {/* Top row: donut + bar chart */}
-      <motion.div {...fadeUp(0.1)} style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 12, marginBottom: 12 }}>
+      {/* Phone: stack. 220px + a 1fr sibling leaves the chart ~100px on a 375. */}
+      <motion.div {...fadeUp(0.1)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 12, marginBottom: 12 }}>
 
         {/* Weekly donut */}
         <GlassPanel style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <SectionLabel>Weekly Progress</SectionLabel>
+          <SectionLabel>Progression de la semaine</SectionLabel>
           <DonutChart done={done} total={total} size={155} strokeWidth={18} />
           <div style={{ fontSize: 12, color: T.textSecondary, textAlign: 'center' }}>
             <span style={{ color: T.emerald, fontWeight: 700, fontSize: 16 }}>{done}</span>
-            <span style={{ color: T.textMuted }}> / {total} tasks</span>
+            <span style={{ color: T.textMuted }}> / {total} tâches</span>
           </div>
         </GlassPanel>
 
         {/* Daily bar chart */}
         <GlassPanel style={{ padding: '20px' }}>
-          <SectionLabel>Tasks Completed per Day</SectionLabel>
+          <SectionLabel>Tâches faites par jour</SectionLabel>
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={barData} margin={{ top: 4, right: 8, bottom: 0, left: -28 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -136,7 +139,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
                   fontSize: 12,
                   color: T.textPrimary,
                 }}
-                formatter={(v) => [v ?? 0, 'Tasks done']}
+                formatter={(v) => [v ?? 0, 'Tâches faites']}
                 cursor={{ fill: T.rowHoverBg }}
               />
               <Bar dataKey="tasks" fill={T.emerald} radius={[3, 3, 0, 0]} maxBarSize={28} />
@@ -146,11 +149,11 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
       </motion.div>
 
       {/* Bottom row: quote + habit streaks */}
-      <motion.div {...fadeUp(0.2)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <motion.div {...fadeUp(0.2)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
 
         {/* Quote */}
         <GlassPanel style={{ padding: '20px' }}>
-          <SectionLabel>Quote of the Day</SectionLabel>
+          <SectionLabel>Citation du jour</SectionLabel>
           <div style={{
             borderLeft: `2px solid ${T.emerald}`,
             paddingLeft: 12,
@@ -165,7 +168,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
 
         {/* Habit streaks */}
         <GlassPanel style={{ padding: '20px' }}>
-          <SectionLabel>Habit Streaks</SectionLabel>
+          <SectionLabel>Séries d'habitudes</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {data.habits.slice(0, 5).map((habit) => {
               const streak = getHabitStreak(habit);

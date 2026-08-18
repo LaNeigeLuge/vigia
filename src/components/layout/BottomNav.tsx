@@ -6,11 +6,13 @@ interface BottomNavProps {
   onSectionChange: (s: Section) => void;
 }
 
+// Five is the ceiling for a bottom bar — anything more goes to a More menu.
 const sections: { id: Section; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
-  { id: 'weekly',    label: 'Week',      icon: '▦' },
-  { id: 'habits',    label: 'Habits',    icon: '✓' },
-  { id: 'stats',     label: 'Stats',     icon: '↑' },
+  { id: 'today',     label: "Aujourd'hui", icon: '•' },
+  { id: 'dashboard', label: 'Résumé',      icon: '⊞' },
+  { id: 'weekly',    label: 'Semaine',     icon: '▦' },
+  { id: 'habits',    label: 'Habitudes',   icon: '✓' },
+  { id: 'stats',     label: 'Stats',       icon: '↑' },
 ];
 
 export function BottomNav({ activeSection, onSectionChange }: Readonly<BottomNavProps>) {
@@ -27,6 +29,9 @@ export function BottomNav({ activeSection, onSectionChange }: Readonly<BottomNav
         borderTop: `1px solid ${T.glassBorder}`,
         display: 'flex',
         height: 58,
+        // Gesture bar / home indicator sits under the bar on notched phones.
+        boxSizing: 'content-box',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         zIndex: 100,
       }}
     >
