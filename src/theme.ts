@@ -68,9 +68,12 @@ const light: ThemeTokens = {
   sheetDot:      'rgba(169,113,68,0.16)',
   margin:        '#a97144',
   marginInk:     '#8a5a33',
-  heatHigh:      '#9e2b25',   // 7.3:1
-  heatMid:       '#c25d1e',   // 4.2:1
-  heatLow:       '#96700a',   // 4.5:1
+  // Amber ramp, mid → dark. On a near-white panel the pale end of a sequential
+  // scale can't be pale: anything above ~L*0.70 drops under the 3:1 floor, so
+  // intensity is carried by darkening, not by going light→dark.
+  heatLow:       '#b8813f',   // 3.3:1
+  heatMid:       '#94592a',   // 5.5:1
+  heatHigh:      '#5e3418',   // 10.4:1
   ease:          [0.4, 0, 0.2, 1],
 };
 
@@ -104,9 +107,11 @@ const dark: ThemeTokens = {
   sheetDot:      'rgba(212,165,116,0.14)',
   margin:        '#D4A574',   // 7.9:1 on the dark sheet
   marginInk:     '#E3BE94',
-  heatHigh:      '#e8736b',   // 5.9:1
-  heatMid:       '#f0955a',   // 7.6:1
-  heatLow:       '#d9b544',   // 8.8:1
+  // Chosen against the dark surface, not flipped from light: here intensity
+  // rises by saturating, since a deep brown would sink into the background.
+  heatLow:       '#EFD3AC',   // 12.1:1
+  heatMid:       '#D9A15F',   // 7.6:1
+  heatHigh:      '#BE7434',   // 4.8:1
   ease:          [0.4, 0, 0.2, 1],
 };
 
