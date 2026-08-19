@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Task } from '../../types';
 import { useTheme } from '../../ThemeContext';
+import { ClayCheck } from '../ui/ClayCheck';
 
 interface TaskRowProps {
   task: Task;
@@ -65,20 +66,14 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
           {'>'}
         </span>
       ) : (
-        <input
-          type="checkbox"
-          checked={task.completed}
-          onChange={handleToggle}
-          disabled={isReadOnly}
-          className={checkAnim ? 'check-animate' : ''}
-          style={{
-            width: 13, height: 13,
-            marginTop: 2,
-            cursor: isReadOnly ? 'default' : 'pointer',
-            accentColor: T.emerald,
-            flexShrink: 0,
-          }}
-        />
+        <span className={checkAnim ? 'check-animate' : ''} style={{ display: 'flex', marginTop: 1 }}>
+          <ClayCheck
+            checked={task.completed}
+            onChange={handleToggle}
+            disabled={isReadOnly}
+            label={task.text}
+          />
+        </span>
       )}
 
       {isEditing ? (

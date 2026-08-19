@@ -61,32 +61,40 @@ body {
   background-size: 32px 32px;
 }
 
-/* ─── Glass — light mode (default) ──────────────────────── */
+/* ─── Panels ─────────────────────────────────────────────── */
+/* The clay DA has no outlines: a shadow does the separating, and nothing has a
+   sharp corner. So the 1px hairline goes and the radius jumps from 2 to 14.
+   Radius lives here rather than inline, so the 13 panels can't drift apart. */
 .glass {
   background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(74,124,89,0.15);
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(45,90,61,0.08), 0 8px 24px rgba(45,90,61,0.06);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* ─── Glass — dark mode ──────────────────────────────────── */
+/* Dark mode keeps a faint rim: a shadow alone can't separate a dark panel from
+   a dark page. */
 .dark .glass {
   background: rgba(245,241,232,0.06);
-  border: 1px solid rgba(245,241,232,0.10);
+  border: 1px solid rgba(245,241,232,0.09);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.30);
 }
 
+/* Panels have no border any more, so hover lifts them instead of tinting a rim. */
 .glass-hover {
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .glass-hover:hover {
   background: rgba(255,255,255,1);
-  border-color: rgba(74,124,89,0.3);
-  box-shadow: 0 2px 12px rgba(74,124,89,0.1);
+  box-shadow: 0 4px 14px rgba(45,90,61,0.12), 0 12px 32px rgba(45,90,61,0.08);
+  transform: translateY(-1px);
 }
 .dark .glass-hover:hover {
   background: rgba(245,241,232,0.12);
-  border-color: rgba(107,155,127,0.35);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.38);
+  transform: translateY(-1px);
 }
 
 /* ─── Inline edit reset ──────────────────────────────────── */
@@ -110,6 +118,25 @@ body {
   opacity: 0.4;
 }
 
+/* ─── Clay toggle ────────────────────────────────────────── */
+.clay-check {
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.clay-check:active:not(:disabled) { transform: scale(0.88); }
+
+/* ─── Reduced motion ─────────────────────────────────────── */
+/* The app animated everywhere with no guard. This covers CSS transitions and
+   keyframes; Framer Motion drives inline transforms from JS and needs its own
+   useReducedMotion() — still outstanding. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ─── Check pop ──────────────────────────────────────────── */
 @keyframes checkPop {
   0%   { transform: scale(1); }
@@ -120,14 +147,31 @@ body {
 
 /* ─── Weekly scroll ──────────────────────────────────────── */
 .weekly-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.weekly-scroll::-webkit-scrollbar { height: 4px; }
+.weekly-scroll::-webkit-scrollbar { height: 10px; }
 .weekly-scroll::-webkit-scrollbar-track { background: transparent; }
-.weekly-scroll::-webkit-scrollbar-thumb { background: rgba(74,124,89,0.3); border-radius: 2px; }
+.weekly-scroll::-webkit-scrollbar-thumb { background: #938AAC; border-radius: 9999px; }
 
-/* ─── Scrollbar global ───────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* ─── Scrollbar ──────────────────────────────────────────── */
+/* Sampled from the modelled lilac bar in the logo, not from the flat palette
+   circles: the circles read #ADA3B1 at 8% saturation, which is grey, while the
+   bar itself is #938AAC at 17%. Twice as saturated *and* back over the 3:1 a
+   styled control owes — 3.01:1 against the page.
+   Hover uses the bar's own shadow side, so both states come from one object.
+   A tinted track was tried to lift the contrast and made it worse (1.94:1
+   thumb-against-track), so the track stays transparent. 10px, not 5: the DA is
+   thick and 5px was hard to grab. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(74,124,89,0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: #938AAC;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #786F8B; background-clip: content-box; }
+
+/* Firefox has no ::-webkit pseudo-elements. */
+* { scrollbar-width: thin; scrollbar-color: #938AAC transparent; }
 
 /* ─── Recharts overrides — light ─────────────────────────── */
 .recharts-cartesian-grid-horizontal line,

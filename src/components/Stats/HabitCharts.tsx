@@ -4,19 +4,22 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, LabelList,
 } from 'recharts';
-import { heatColor } from './heatColor';
+import { heatColor, shade } from './heatColor';
 import { centeredAvg } from './smooth';
 import { MoodFace } from '../ui/MoodFace';
 import { MOOD_LABEL } from '../ui/mood';
+import type { AppData, Habit, MoodValue } from '../../types';
+import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
+import { useTheme } from '../../ThemeContext';
 
 /**
  * 3 days, not 7: a week-wide window flattens a two-day episode, and this chart
  * is read to spot short marking periods, not long-run trend.
  */
 const SMOOTH_WINDOW = 3;
-import type { AppData, Habit, MoodValue } from '../../types';
-import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
-import { useTheme } from '../../ThemeContext';
+
+/** Gradient ids derive from the colour, so bars of one tier share a single def. */
+const gradId = (c: string) => `clay-${c.replace('#', '')}`;
 
 interface ChartPoint {
   label: string;
@@ -385,6 +388,12 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
     [rawPoints, inverted],
   );
 
+  // One gradient per distinct tier colour, not one per bar.
+  const barColors = useMemo(
+    () => [...new Set(displayPoints.map((p) => heatColor(p.display, T)))],
+    [displayPoints, T],
+  );
+
   if (habits.length === 0) return <Empty />;
 
   const buttonStyle = {
@@ -475,13 +484,28 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
                 strokeDasharray="3 3"
                 strokeWidth={1.5}
               />
+              {/* Volume by light, not by texture: a vertical light→dark ramp on
+                  each bar plus one soft drop shadow. A 32px bar carries it; the
+                  lines in the other charts deliberately don't get it. */}
+              <defs>
+                {barColors.map((c) => (
+                  <linearGradient key={c} id={gradId(c)} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor={shade(c, 0.20)} />
+                    <stop offset="100%" stopColor={shade(c, -0.16)} />
+                  </linearGradient>
+                ))}
+                <filter id="clay-drop" x="-40%" y="-20%" width="180%" height="150%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodOpacity="0.22" />
+                </filter>
+              </defs>
               <Bar
                 dataKey="display"
-                radius={[6, 6, 0, 0]}
+                radius={[8, 8, 2, 2]}
                 maxBarSize={32}
+                filter="url(#clay-drop)"
               >
                 {displayPoints.map((p) => (
-                  <Cell key={p.fullDate} fill={heatColor(p.display, T)} />
+                  <Cell key={p.fullDate} fill={`url(#${gradId(heatColor(p.display, T))})`} />
                 ))}
                 <LabelList
                   dataKey="display"

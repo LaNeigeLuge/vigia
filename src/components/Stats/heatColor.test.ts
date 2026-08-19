@@ -7,7 +7,7 @@ const T = {
   heatHigh: 'HIGH',
   heatMid:  'MID',
   heatLow:  'LOW',
-  emerald:  'GREEN',
+  heatFloor: 'GREEN',
 } as unknown as ThemeTokens;
 
 describe('heatColor', () => {

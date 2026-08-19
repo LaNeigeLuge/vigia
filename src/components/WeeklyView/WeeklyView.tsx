@@ -10,7 +10,7 @@ import {
 } from '../../utils/dateUtils';
 import { getDayEntries } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
-import { useIsMobile } from '../../hooks/useIsMobile';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 interface WeeklyViewProps {
   data: AppData;

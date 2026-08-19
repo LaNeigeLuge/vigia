@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Todo } from '../../types';
 import { useTheme } from '../../ThemeContext';
+import { ClayCheck } from '../ui/ClayCheck';
 
 interface BacklogProps {
   todos: Todo[];
@@ -30,7 +31,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
 
   return (
     <div style={{ marginTop: 12 }}>
-      <div className="glass" style={{ borderRadius: 2 }}>
+      <div className="glass" style={{ }}>
 
         {/* Header */}
         <div style={{
@@ -48,7 +49,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
             {pending.length > 0 && (
               <span style={{
                 marginLeft: 8, background: T.emerald, color: '#fff',
-                borderRadius: 8, padding: '1px 7px', fontSize: 10, fontWeight: 700,
+                borderRadius: 9999, padding: '2px 8px', fontSize: 10, fontWeight: 700,
               }}>
                 {pending.length}
               </span>
@@ -152,11 +153,10 @@ function TodoItem({ todo, onToggle, onDelete }: Readonly<{
         '--row-hover': T.rowHoverBg,
       } as React.CSSProperties}
     >
-      <input
-        type="checkbox"
+      <ClayCheck
         checked={todo.completed}
         onChange={() => onToggle(todo.id)}
-        style={{ marginTop: 2, width: 14, height: 14, accentColor: T.emerald, flexShrink: 0, cursor: 'pointer' }}
+        label={todo.text}
       />
       <span style={{
         flex: 1, fontSize: 13,

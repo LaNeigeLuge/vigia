@@ -12,7 +12,7 @@ import { EmotionalCheckIn } from './EmotionalCheckIn';
 import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getDailyQuote, getDayCompletionRate, getHabitStreak, getWeekCompletionRate } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
-import { useIsMobile } from '../../hooks/useIsMobile';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0) => ({

@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import type { AppData, Habit } from '../../types';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Flame } from '../ui/Flame';
+import { ClayCheck, ClayDot } from '../ui/ClayCheck';
 import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
-import { useIsMobile } from '../../hooks/useIsMobile';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 
@@ -140,7 +141,7 @@ function HabitCard({
   else if (streak >= 1) streakColor = T.aqua;
 
   return (
-    <div className="glass" style={{ borderRadius: 2, marginBottom: 10, overflow: 'hidden' }}>
+    <div className="glass" style={{ marginBottom: 10, overflow: 'hidden' }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '4px 4px 4px 0', borderBottom: `1px solid ${T.glassBorderEm}`,
@@ -181,14 +182,8 @@ function HabitCard({
               }}>
                 {getDayLabel(day)}
               </span>
-              {/* Glyph, not colour alone. */}
-              <span style={{
-                fontSize: 15, lineHeight: 1,
-                fontFamily: 'Syne, sans-serif', fontWeight: 700,
-                color: checked ? T.emerald : T.textMuted,
-              }}>
-                {checked ? '✓' : '·'}
-              </span>
+              {/* Shape, not colour alone — a raised pellet vs an empty well. */}
+              <ClayDot checked={checked} size={22} />
             </button>
           );
         })}
@@ -354,11 +349,10 @@ export function HabitTracker({
                       transition: 'background 0.2s',
                     }}
                   >
-                    <input
-                      type="checkbox"
+                    <ClayCheck
                       checked={checked}
                       onChange={() => onToggleHabit(habit.id, dayKey)}
-                      style={{ width: 14, height: 14, accentColor: T.emerald, cursor: 'pointer' }}
+                      label={`${habit.name} — ${getDayLabel(day)} ${dayKey.slice(8)}`}
                     />
                   </div>
                 );

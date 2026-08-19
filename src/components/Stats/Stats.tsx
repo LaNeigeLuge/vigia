@@ -32,7 +32,7 @@ function BigStat({ label, value, sub, accent }: Readonly<{
   return (
     <div
       className="glass glass-hover"
-      style={{ flex: 1, minWidth: 130, padding: '16px 18px', borderRadius: 2 }}
+      style={{ flex: 1, minWidth: 130, padding: '16px 18px' }}
     >
       <div style={{
         fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
@@ -133,7 +133,7 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
       </motion.div>
 
       {/* Day performance */}
-      <motion.div {...fadeUp(0.1)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.1)} className="glass" style={{ marginBottom: 12 }}>
         <BlockHeader>Daily Performance — Current Week</BlockHeader>
         <div style={{ display: 'flex' }}>
           {dayRows.map(({ dayKey, label, pct, done, total, level }) => {
@@ -163,25 +163,25 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
       </motion.div>
 
       {/* Habit consistency heatmap */}
-      <motion.div {...fadeUp(0.2)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.2)} className="glass" style={{ marginBottom: 12 }}>
         <BlockHeader>Habit Consistency — All Time</BlockHeader>
         <HabitHeatmap habits={data.habits} currentWeekKey={currentWeekKey} moods={data.moods} />
       </motion.div>
 
       {/* Habit weekly bar chart */}
-      <motion.div {...fadeUp(0.3)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.3)} className="glass" style={{ marginBottom: 12 }}>
         <BlockHeader>Habit History — Weekly</BlockHeader>
         <HabitWeeklyBarChart habits={data.habits} />
       </motion.div>
 
       {/* Habits vs Mood */}
-      <motion.div {...fadeUp(0.4)} className="glass" style={{ marginBottom: 12, borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.4)} className="glass" style={{ marginBottom: 12 }}>
         <BlockHeader>Habits vs Mood</BlockHeader>
         <HabitMoodChart data={data} />
       </motion.div>
 
       {/* Habit streaks grid */}
-      <motion.div {...fadeUp(0.5)} className="glass" style={{ borderRadius: 2 }}>
+      <motion.div {...fadeUp(0.5)} className="glass" style={{ }}>
         <BlockHeader>Current Habit Streaks</BlockHeader>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {data.habits.map((h) => {

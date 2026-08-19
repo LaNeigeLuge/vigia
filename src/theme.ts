@@ -32,6 +32,7 @@ export interface ThemeTokens {
   /** Darker margin ink for small text. 5.6:1 on the sheet. */
   marginInk: string;
   /* Weekly-bar heat scale. All ≥3:1 on their own theme's panel (non-text). */
+  heatFloor: string;
   heatHigh: string;
   heatMid: string;
   heatLow: string;
@@ -68,12 +69,16 @@ const light: ThemeTokens = {
   sheetDot:      'rgba(169,113,68,0.16)',
   margin:        '#a97144',
   marginInk:     '#8a5a33',
-  // Amber ramp, mid → dark. On a near-white panel the pale end of a sequential
-  // scale can't be pale: anything above ~L*0.70 drops under the 3:1 floor, so
-  // intensity is carried by darkening, not by going light→dark.
-  heatLow:       '#b8813f',   // 3.3:1
-  heatMid:       '#94592a',   // 5.5:1
-  heatHigh:      '#5e3418',   // 10.4:1
+  // Mauve ramp from the brand sheet's lilac, kept as light as the 3:1 floor
+  // allows. The previous amber ramp topped out at 10.4:1 — far darker than the
+  // DA — so the whole scale was compressed toward the light end.
+  // The floor is a light sage rather than the app's emerald: emerald sits at
+  // 4.78:1, which would have made the *lowest* tier darker than the next two
+  // and broken the ramp's monotony.
+  heatFloor:     '#7F8C6B',   // 3.5:1
+  heatLow:       '#9F8DA6',   // 3.0:1
+  heatMid:       '#8A7194',   // 4.2:1
+  heatHigh:      '#6E5578',   // 6.4:1
   ease:          [0.4, 0, 0.2, 1],
 };
 
@@ -107,11 +112,12 @@ const dark: ThemeTokens = {
   sheetDot:      'rgba(212,165,116,0.14)',
   margin:        '#D4A574',   // 7.9:1 on the dark sheet
   marginInk:     '#E3BE94',
-  // Chosen against the dark surface, not flipped from light: here intensity
-  // rises by saturating, since a deep brown would sink into the background.
-  heatLow:       '#EFD3AC',   // 12.1:1
-  heatMid:       '#D9A15F',   // 7.6:1
-  heatHigh:      '#BE7434',   // 4.8:1
+  // Chosen against the dark surface, not flipped from light: intensity rises by
+  // deepening the lilac, since a pale tint would flatten out at the top.
+  heatFloor:     '#8BAA93',   // 6.9:1
+  heatLow:       '#E4DEE6',   // 13.2:1
+  heatMid:       '#C9BCCE',   // 9.6:1
+  heatHigh:      '#AC99B4',   // 6.6:1
   ease:          [0.4, 0, 0.2, 1],
 };
 

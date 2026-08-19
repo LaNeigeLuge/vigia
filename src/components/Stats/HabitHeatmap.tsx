@@ -131,7 +131,7 @@ export function HabitHeatmap({ habits, currentWeekKey, moods }: Readonly<HabitHe
                       title={mood ? `Mood ${mood}/5` : undefined}
                       style={{
                         width: CELL, height: 5,
-                        borderRadius: 2,
+                        borderRadius: 4,
                         background: future || !mood ? T.trackBg : MOOD_COLORS[mood],
                         opacity: future ? 0 : 1,
                         transition: 'background 0.1s',
@@ -227,7 +227,7 @@ export function HabitHeatmap({ habits, currentWeekKey, moods }: Readonly<HabitHe
         }}>
           <div style={{ width: CELL, height: CELL, borderRadius: 3, background: T.trackBg, border: `1px solid ${T.glassBorder}` }} />
           <span>not done</span>
-          <div style={{ width: CELL, height: CELL, borderRadius: 3, background: T.emerald, marginLeft: 6 }} />
+          <div style={{ width: CELL, height: CELL, borderRadius: 4, background: T.emerald, marginLeft: 6 }} />
           <span>done</span>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { MoodValue } from '../../types';
 import { formatDayKey, addDays, getDayLabel, getDayNumber } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { MoodFace } from '../ui/MoodFace';
 import { MOOD_LABEL } from '../ui/mood';
 
@@ -82,6 +83,7 @@ interface MoodPickerProps {
 
 export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
   const { T } = useTheme();
+  const isMobile = useIsMobile();
   const [daysShown, setDaysShown] = useState(7);
   const today = new Date();
 
@@ -96,7 +98,7 @@ export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
   });
 
   return (
-    <div className="glass" style={{ borderRadius: 2, marginBottom: 12, overflow: 'hidden' }}>
+    <div className="glass" style={{ marginBottom: 12, overflow: 'hidden' }}>
       <div style={{
         fontFamily: 'Syne, sans-serif', fontWeight: 700,
         fontSize: 10, textTransform: 'uppercase',
@@ -107,7 +109,13 @@ export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
         Mood
       </div>
 
-      <div style={{ maxHeight: 210, overflowY: 'auto', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* 210px showed 2½ rows behind an inner scrollbar, which reads as broken.
+          A pointer screen has the room for a full week. */}
+      <div style={{
+        maxHeight: isMobile ? 210 : 470,
+        overflowY: 'auto', padding: '10px 20px',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
         {days.map((day, i) => (
           <div key={day.dayKey}>
             {i > 0 && <div style={{ height: 1, background: T.glassBorder, marginBottom: 8 }} />}

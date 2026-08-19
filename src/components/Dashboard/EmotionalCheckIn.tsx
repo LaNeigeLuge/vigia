@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { EmotionId, EmotionSlot } from '../../types';
 import { addDays, formatDayKey } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsWide } from '../../hooks/useMediaQuery';
 import { EMOTIONS, EMOTION_FACE } from './emotions';
 
 /** Faces are drawn on a 300×215 canvas. */
@@ -14,28 +15,45 @@ const SLOTS: { id: EmotionSlot; label: string }[] = [
 ];
 
 /**
- * Ring geometry. 16 faces of FACE px only clear each other when the radius is
- * at least 16·FACE/2π, so a 44px touch target forces R ≥ 112 — this is measured
- * from the circumference, not chosen by eye.
+ * Ring geometry, derived rather than hardcoded: 16 faces of `face` px only clear
+ * each other when the radius is at least 16·face/2π, measured off the
+ * circumference. Change the face size and the radius follows.
  */
-const FACE = 44;
-const R = 112;
-const SIZE = (R + FACE) * 2;
+function ringGeometry(face: number) {
+  const r = Math.ceil((EMOTIONS.length * face) / (2 * Math.PI));
+  return { face, r, size: (r + face) * 2 };
+}
+
+/** Touch: 44px, the native minimum. */
+const TOUCH_RING = ringGeometry(44);
+
+/**
+ * Pointer: 38px → 270px rings, 810px for three in a row.
+ *
+ * Not a compromise — the 44px floor is a touch guideline, while WCAG's
+ * requirement for web pointer targets is 24×24 CSS px. The exact value comes
+ * from the tightest case that must still fit: a 1440px viewport *with* a
+ * scrollbar leaves the summary 857px, so 40px faces (852px) cleared it by 5px
+ * and wrapped 2 + 1 the moment anything else moved. 38 leaves 47px.
+ */
+const POINTER_RING = ringGeometry(38);
 
 /**
  * Plain HTML rather than SVG: once the colour pills were dropped there were no
  * vector shapes left to draw, and real <button>s bring focus, keyboard and
  * pressed state for free where a clickable <g> would need them hand-rolled.
  */
-function EmotionRing({ slotId, slotLabel, current, onPick }: Readonly<{
+function EmotionRing({ slotId, slotLabel, current, onPick, geom }: Readonly<{
   slotId: EmotionSlot;
   slotLabel: string;
   current: EmotionId | undefined;
   onPick: (slot: EmotionSlot, emotion: EmotionId) => void;
+  geom: { face: number; r: number; size: number };
 }>) {
   const { T } = useTheme();
   const [preview, setPreview] = useState<EmotionId | null>(null);
 
+  const { face: FACE, r: R, size: SIZE } = geom;
   const shown = preview ?? current;
   const shownLabel = EMOTIONS.find((e) => e.id === shown)?.label;
   const c = SIZE / 2;
@@ -98,7 +116,8 @@ function EmotionRing({ slotId, slotLabel, current, onPick }: Readonly<{
               src={EMOTION_FACE[shown]}
               alt=""
               aria-hidden
-              style={{ width: 76, height: 76 * FACE_RATIO, display: 'block' }}
+              // Scales with the ring so the centre stays clear of the faces.
+              style={{ width: R * 0.68, height: R * 0.68 * FACE_RATIO, display: 'block' }}
             />
           )}
           {/* The name is always present — identity never rests on the drawing alone. */}
@@ -129,13 +148,14 @@ interface EmotionalCheckInProps {
 
 export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalCheckInProps>) {
   const { T } = useTheme();
+  const wide = useIsWide();
   const [dayOffset, setDayOffset] = useState<0 | 1>(0);
 
   const dayKey  = formatDayKey(addDays(new Date(), -dayOffset));
   const dayData = checkins[dayKey] ?? {};
 
   return (
-    <div className="glass" style={{ borderRadius: 2, marginBottom: 12, overflow: 'hidden' }}>
+    <div className="glass" style={{ marginBottom: 12, overflow: 'hidden' }}>
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -165,6 +185,7 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
                   border: `1px solid ${active ? T.emerald : T.glassBorder}`,
                   borderRadius: 20, padding: '8px 14px', minHeight: 36,
                   cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                  boxShadow: active ? '0 2px 6px rgba(45,90,61,0.30), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
                 }}
               >
                 {offset === 0 ? "Aujourd'hui" : 'Hier'}
@@ -174,7 +195,15 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
         </div>
       </div>
 
-      <div style={{ padding: '8px 0 4px' }}>
+      {/* A row on a pointer screen, stacked on touch — three 284px rings fit
+          side by side above 1280px, three 312px ones never fit on a phone. */}
+      <div style={{
+        padding: '8px 0 4px',
+        display: 'flex',
+        flexDirection: wide ? 'row' : 'column',
+        justifyContent: 'space-around',
+        flexWrap: 'wrap',
+      }}>
         {SLOTS.map((slot) => (
           <EmotionRing
             key={`${slot.id}-${dayKey}`}
@@ -182,6 +211,7 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
             slotLabel={slot.label}
             current={dayData[slot.id]}
             onPick={(s, emotion) => onSetCheckin(dayKey, s, emotion)}
+            geom={wide ? POINTER_RING : TOUCH_RING}
           />
         ))}
       </div>

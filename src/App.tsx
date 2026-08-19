@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Section } from './types';
 import { useAppData } from './hooks/useAppData';
+import { useIsMobile, useIsWide } from './hooks/useMediaQuery';
 import { useAuth } from './hooks/useAuth';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { NavBar } from './components/layout/NavBar';
@@ -61,6 +62,13 @@ interface AppInnerProps {
 function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
   const [section, setSection] = useState<Section>('today');
   const { dark, T } = useTheme();
+  const isWide = useIsWide();
+  const isMobile = useIsMobile();
+
+  // Wide screens show Today and the summary together, so 'dashboard' has no
+  // destination of its own. Folded at render time rather than synced in an
+  // effect, so resizing never costs a second render to correct itself.
+  const activeSection: Section = isWide && section === 'dashboard' ? 'today' : section;
 
   const {
     data, loading, error, currentWeekKey,
@@ -113,33 +121,62 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
         </div>
       )}
 
-      {/* Error banner */}
+      {/* Error banner — sits right under the bar, whose height changes with the
+          breakpoint, so the offset has to follow it. */}
       {error && (
-        <div style={{ position: 'fixed', top: 52, left: 0, right: 0, zIndex: 40, background: T.amber, color: '#fff', padding: '10px 20px', fontSize: 12, fontFamily: 'DM Sans, sans-serif' }}>
+        <div style={{ position: 'fixed', top: isMobile ? 52 : 64, left: 0, right: 0, zIndex: 40, background: T.amber, color: '#fff', padding: '10px 20px', fontSize: 12, fontFamily: 'DM Sans, sans-serif' }}>
           ⚠ {error}
         </div>
       )}
 
       {/* Nav */}
       <div style={{ position: 'relative', zIndex: 10 }}>
-        <NavBar activeSection={section} onSectionChange={setSection} userEmail={userEmail} onSignOut={onSignOut} />
+        <NavBar activeSection={activeSection} onSectionChange={setSection} userEmail={userEmail} onSignOut={onSignOut} />
       </div>
 
-      {/* Content */}
-      {/* 58px nav + 14px breathing room + whatever the gesture bar takes */}
-      <main style={{ position: 'relative', zIndex: 1, paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
+      {/* Content — only reserve room for the bottom bar where it exists.
+          58px nav + 14px breathing room + whatever the gesture bar takes. */}
+      <main style={{
+        position: 'relative', zIndex: 1,
+        paddingBottom: isMobile ? 'calc(72px + env(safe-area-inset-bottom, 0px))' : 24,
+      }}>
         <AnimatePresence mode="wait">
-          <motion.div key={section} variants={sectionVariants} initial="initial" animate="animate" exit="exit">
-            {section === 'today' && (
-              <Today
-                data={data}
-                onAddTask={handleAddTask} onToggleTask={toggleTask}
-                onUpdateTask={updateTaskText} onDeleteTask={handleDeleteTask}
-                onMigrateTask={handleMigrateTask} onToggleHabit={handleToggleHabit}
-              />
+          <motion.div key={activeSection} variants={sectionVariants} initial="initial" animate="animate" exit="exit">
+            {activeSection === 'today' && (
+              <div style={{
+                display: isWide ? 'grid' : 'block',
+                // clamp, not minmax: minmax hands the left column its maximum as
+                // soon as there's slack, which starves the right one and makes
+                // the three emotion rings wrap. This keeps the log at 480 when
+                // space is tight and lets it grow only once the summary is served.
+                gridTemplateColumns: isWide ? 'clamp(480px, 32%, 620px) minmax(0, 1fr)' : undefined,
+                gap: isWide ? 16 : undefined,
+                maxWidth: isWide ? 1480 : undefined,
+                margin: isWide ? '0 auto' : undefined,
+                padding: isWide ? '0 16px' : undefined,
+                alignItems: 'start',
+              }}>
+                {/* Both children are wrapped: Today and Dashboard each centre
+                    themselves with `margin: 0 auto`, and an auto inline margin
+                    on a grid item cancels the default stretch — the box would
+                    shrink to its content instead of filling the column. */}
+                <div>
+                  <Today
+                    data={data}
+                    onAddTask={handleAddTask} onToggleTask={toggleTask}
+                    onUpdateTask={updateTaskText} onDeleteTask={handleDeleteTask}
+                    onMigrateTask={handleMigrateTask} onToggleHabit={handleToggleHabit}
+                  />
+                </div>
+                {isWide && (
+                  <div>
+                    <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} onSetCheckin={handleSetCheckin} />
+                  </div>
+                )}
+              </div>
             )}
-            {section === 'dashboard' && <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} onSetCheckin={handleSetCheckin} />}
-            {section === 'weekly' && (
+            {activeSection === 'dashboard' && <Dashboard data={data} currentWeekKey={currentWeekKey} onSetMood={handleSetMood} onSetCheckin={handleSetCheckin} />}
+            {activeSection === 'weekly' && (
               <WeeklyView
                 data={data} currentWeekKey={currentWeekKey}
                 onAddTask={handleAddTask} onToggleTask={toggleTask}
@@ -147,22 +184,25 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
                 onAddTodo={handleAddTodo} onToggleTodo={handleToggleTodo} onDeleteTodo={handleDeleteTodo}
               />
             )}
-            {section === 'habits' && (
+            {activeSection === 'habits' && (
               <HabitTracker
                 data={data} currentWeekKey={currentWeekKey}
                 onAddHabit={handleAddHabit} onUpdateHabitName={handleUpdateHabitName}
                 onDeleteHabit={handleDeleteHabit} onToggleHabit={handleToggleHabit}
               />
             )}
-            {section === 'stats' && <Stats data={data} currentWeekKey={currentWeekKey} />}
+            {activeSection === 'stats' && <Stats data={data} currentWeekKey={currentWeekKey} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Mobile nav */}
-      <div style={{ position: 'relative', zIndex: 10 }}>
-        <BottomNav activeSection={section} onSectionChange={setSection} />
-      </div>
+      {/* Mobile nav — the top bar already covers every section above 767px, and
+          showing both stacked two navigations at the same hierarchy level. */}
+      {isMobile && (
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <BottomNav activeSection={activeSection} onSectionChange={setSection} />
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icon-192.svg', 'icon-512.svg'],
+      includeAssets: ['favicon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
       manifest: {
         name: 'vigia',
         short_name: 'vigia',
@@ -20,26 +20,20 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          // Full-bleed background: the OS applies its own mask, so a rounded
+          // corner baked in would be clipped twice.
           {
-            src: 'icon-192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-          },
-          {
-            src: 'icon-512.svg',
+            src: 'icon-512-maskable.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-          },
-          {
-            src: 'icon-512.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'maskable',
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

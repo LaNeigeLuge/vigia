@@ -1,5 +1,18 @@
 import type { Section } from '../../types';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile, useIsWide } from '../../hooks/useMediaQuery';
+import logoGreen from '../../assets/logo-nav.png';
+import logoCream from '../../assets/logo-nav-cream.png';
+import logoTex from '../../assets/logo-nav-tex.png';
+
+/**
+ * The clay lockup needs height to read: at 26px the sun and the lilac rule turn
+ * to mud, and the modelled texture disappears entirely. It holds from 40px, so
+ * a pointer screen gets a taller bar and the textured mark, while a phone keeps
+ * the flat monochrome one that stays crisp small.
+ */
+const NAV_H   = { mobile: 52, pointer: 64 };
+const LOGO_H  = { mobile: 26, pointer: 44 };
 
 interface NavBarProps {
   activeSection: Section;
@@ -18,6 +31,15 @@ const sections: { id: Section; label: string }[] = [
 
 export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }: Readonly<NavBarProps>) {
   const { dark, toggle, T } = useTheme();
+  const isWide = useIsWide();
+  const isMobile = useIsMobile();
+  // Wide screens render the summary beside Today, so it has no page of its own.
+  const items = isWide ? sections.filter((s) => s.id !== 'dashboard') : sections;
+
+  const navH  = isMobile ? NAV_H.mobile  : NAV_H.pointer;
+  const logoH = isMobile ? LOGO_H.mobile : LOGO_H.pointer;
+  let logoSrc = logoTex;
+  if (isMobile) logoSrc = dark ? logoCream : logoGreen;
 
   return (
     <nav
@@ -29,45 +51,22 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
         padding: '0 20px',
         display: 'flex',
         alignItems: 'center',
-        height: 52,
+        height: navH,
         boxShadow: T.shadowSm,
       }}
     >
-      {/* Brand */}
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          fontFamily: 'Syne, sans-serif',
-          fontWeight: 800,
-          fontSize: 16,
-          color: T.emerald,
-          marginRight: 28,
-          letterSpacing: '-0.3px',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="22" height="22" style={{ flexShrink: 0 }}>
-          <rect width="512" height="512" rx="96" fill={T.emerald}/>
-          <g transform="translate(256,256) rotate(-45)">
-            <rect x="-155" y="-27" width="235" height="54" rx="10" fill="#eee9de"/>
-            <rect x="82" y="-20" width="90" height="40" rx="8" fill="#ddd8cc"/>
-            <rect x="164" y="-14" width="60" height="28" rx="7" fill="#ccc8bc"/>
-            <rect x="218" y="-10" width="18" height="20" rx="5" fill="#b8b4a8"/>
-            <rect x="76" y="-29" width="14" height="58" rx="5" fill="#b4b0a4"/>
-            <rect x="158" y="-22" width="12" height="44" rx="4" fill="#b4b0a4"/>
-            <circle cx="-155" cy="0" r="42" fill={T.emerald}/>
-            <circle cx="-155" cy="0" r="34" fill="#6a9e98" opacity="0.9"/>
-            <circle cx="-155" cy="0" r="22" fill="#4a7c59" opacity="0.75"/>
-            <circle cx="-144" cy="-12" r="9" fill="white" opacity="0.22"/>
-            <circle cx="-155" cy="0" r="42" fill="none" stroke="#eee9de" strokeWidth="5"/>
-          </g>
-        </svg>
-        vigia
-      </div>
+      {/* Brand — the real wordmark lockup, replacing a hand-drawn placeholder.
+          Cream on dark: the green mark only reaches 3.9:1 on the dark navbar,
+          and the brand sheet ships a cream variant for exactly this case. */}
+      <img
+        src={logoSrc}
+        alt="vigia"
+        style={{ height: logoH, width: 'auto', display: 'block', marginRight: 28, flexShrink: 0 }}
+      />
 
       {/* Sections */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-        {sections.map((s) => {
+        {items.map((s) => {
           const isActive = activeSection === s.id;
           const activeBg = dark ? 'rgba(107,155,127,0.15)' : 'rgba(74,124,89,0.08)';
           return (
@@ -80,7 +79,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
                 border: 'none',
                 borderBottom: isActive ? `2px solid ${T.emerald}` : '2px solid transparent',
                 padding: '0 16px',
-                height: 52,
+                height: navH,
                 cursor: 'pointer',
                 fontFamily: 'DM Sans, sans-serif',
                 fontWeight: isActive ? 600 : 400,
@@ -115,7 +114,9 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
             fontSize: 12,
             whiteSpace: 'nowrap',
             transition: 'all 0.2s ease',
-            boxShadow: dark ? 'none' : '0 1px 4px rgba(74,124,89,0.2)',
+            boxShadow: dark
+              ? '0 2px 6px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.22)'
+              : '0 2px 6px rgba(45,90,61,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',
           }}
         >
           <span style={{ fontSize: 14 }}>{dark ? '☀' : '☽'}</span>
