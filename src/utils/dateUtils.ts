@@ -48,7 +48,7 @@ export function getDayNumber(date: Date): string {
 }
 
 export function getMonthLabel(date: Date): string {
-  return format(date, 'MMM');
+  return format(date, 'MMM', { locale: fr });
 }
 
 export function addWeeks(date: Date, count: number): Date {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Todo } from '../../types';
 import { useTheme } from '../../ThemeContext';
 import { ClayCheck } from '../ui/ClayCheck';
@@ -13,6 +13,7 @@ interface BacklogProps {
 
 export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogProps>) {
   const { T } = useTheme();
+  const still = useReducedMotion() ?? false;
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,9 +74,9 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
         <AnimatePresence>
           {adding && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
+              initial={still ? false : { height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              exit={still ? { opacity: 0 } : { height: 0, opacity: 0 }}
               style={{ overflow: 'hidden' }}
             >
               <div style={{ padding: '8px 14px', borderBottom: border }}>

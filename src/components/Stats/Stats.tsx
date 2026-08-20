@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { AppData } from '../../types';
 import {
   formatDayKey, getDayLabel, getWeekDays, parseDayKey,
@@ -9,15 +9,19 @@ import {
 } from '../../utils/dataUtils';
 import type { DayLevelTier } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Flame } from '../ui/Flame';
 import { HabitHeatmap } from './HabitHeatmap';
 import { HabitMoodChart, HabitWeeklyBarChart } from './HabitCharts';
 
 const ease = [0.4, 0, 0.2, 1] as const;
-const fadeUp = (delay = 0) => ({
+const fadeUp = (delay = 0, still = false) => still ? {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
+} : {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.55, delay, ease } },
-});
+};
 
 interface StatsProps {
   data: AppData;
@@ -72,6 +76,8 @@ function BlockHeader({ children }: Readonly<{ children: React.ReactNode }>) {
 
 export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
   const { T } = useTheme();
+  const isMobile = useIsMobile();
+  const still = useReducedMotion() ?? false;
 
   const { done: thisDone, total: thisTotal } = getWeekCompletionRate(data, currentWeekKey);
   const thisPct = thisTotal === 0 ? 0 : Math.round((thisDone / thisTotal) * 100);
@@ -109,50 +115,63 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
   const deltaValue = delta === 0 ? '—' : `${deltaSign}${delta}%`;
 
   return (
-    <div style={{ padding: '20px', maxWidth: 920, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '12px' : '20px', maxWidth: 920, margin: '0 auto' }}>
 
       {/* Top stat row */}
-      <motion.div {...fadeUp(0)} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-        <BigStat label="This Week"     value={`${thisPct}%`} sub={`${thisDone} / ${thisTotal} tasks`} />
+      <motion.div {...fadeUp(0, still)} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        <BigStat label="Cette semaine" value={`${thisPct}%`} sub={`${thisDone} / ${thisTotal} tâches`} />
         <BigStat
-          label="vs Last Week"
+          label="vs semaine dernière"
           value={deltaValue}
-          sub={`Last: ${lastPct}% (${lastDone}/${lastTotal})`}
+          sub={`Avant : ${lastPct}% (${lastDone}/${lastTotal})`}
           accent={deltaAccent}
         />
-        <BigStat label="Best Week"     value={data.allTimeStats.bestWeekCount || '—'} sub="tasks in one week" accent={T.amber} />
-        <BigStat label="All-Time"      value={data.allTimeStats.totalTasksCompleted} sub="tasks completed" accent={T.sage} />
+        <BigStat label="Meilleure semaine" value={data.allTimeStats.bestWeekCount || '—'} sub="tâches en une semaine" accent={T.amber} />
+        <BigStat label="Depuis le début" value={data.allTimeStats.totalTasksCompleted} sub="tâches faites" accent={T.sage} />
         <BigStat
-          label="Longest Streak"
+          label="Plus longue série"
           value={data.allTimeStats.longestHabitStreak > 0
             ? <><Flame size={24} /> {data.allTimeStats.longestHabitStreak}</>
             : '—'}
-          sub={data.allTimeStats.longestHabitName || 'days'}
+          sub={data.allTimeStats.longestHabitName || 'jours'}
           accent={T.aqua}
         />
       </motion.div>
 
       {/* Day performance */}
-      <motion.div {...fadeUp(0.1)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Daily Performance — Current Week</BlockHeader>
+      <motion.div {...fadeUp(0.1, still)} className="glass" style={{ marginBottom: 12 }}>
+        <BlockHeader>Performance du jour — semaine en cours</BlockHeader>
         <div style={{ display: 'flex' }}>
           {dayRows.map(({ dayKey, label, pct, done, total, level }) => {
             const col = levelColors[level.tier];
             return (
               <div key={dayKey} style={{
-                flex: 1, padding: '12px 8px', textAlign: 'center',
+                // minWidth 0 is the actual fix: without it a flex item refuses
+                // to shrink under its content, and the labels below used to be
+                // nowrap — seven of "Ça chauffe" forced ~500px and pushed the
+                // whole row out of the panel on a phone.
+                flex: 1, minWidth: 0,
+                padding: isMobile ? '10px 3px' : '12px 8px',
+                textAlign: 'center',
                 borderRight: border,
               }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11, color: T.emerald, marginBottom: 5 }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: isMobile ? 10 : 11, color: T.emerald, marginBottom: 5 }}>
                   {label}
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne, sans-serif', color: col }}>
+                <div style={{
+                  fontSize: isMobile ? 16 : 22, fontWeight: 800,
+                  fontFamily: 'Syne, sans-serif', color: col,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
                   {pct}%
                 </div>
                 <div style={{ fontSize: 10, color: T.textMuted, margin: '3px 0' }}>{done}/{total}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: col, whiteSpace: 'nowrap' }}>
-                  {level.tier === 'fire'  && <Flame size={11} />}
-                  {level.tier === 'beast' && <Flame size={11} hot />}
+                <div style={{
+                  fontSize: isMobile ? 9 : 10, fontWeight: 700, color: col,
+                  lineHeight: 1.2, overflowWrap: 'anywhere',
+                }}>
+                  {level.tier === 'fire'  && <Flame size={isMobile ? 9 : 11} />}
+                  {level.tier === 'beast' && <Flame size={isMobile ? 9 : 11} hot />}
                   {(level.tier === 'fire' || level.tier === 'beast') && ' '}
                   {level.label}
                 </div>
@@ -163,26 +182,26 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
       </motion.div>
 
       {/* Habit consistency heatmap */}
-      <motion.div {...fadeUp(0.2)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Habit Consistency — All Time</BlockHeader>
+      <motion.div {...fadeUp(0.2, still)} className="glass" style={{ marginBottom: 12 }}>
+        <BlockHeader>Régularité des habitudes</BlockHeader>
         <HabitHeatmap habits={data.habits} currentWeekKey={currentWeekKey} moods={data.moods} />
       </motion.div>
 
       {/* Habit weekly bar chart */}
-      <motion.div {...fadeUp(0.3)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Habit History — Weekly</BlockHeader>
+      <motion.div {...fadeUp(0.3, still)} className="glass" style={{ marginBottom: 12 }}>
+        <BlockHeader>Historique par semaine</BlockHeader>
         <HabitWeeklyBarChart habits={data.habits} />
       </motion.div>
 
       {/* Habits vs Mood */}
-      <motion.div {...fadeUp(0.4)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Habits vs Mood</BlockHeader>
+      <motion.div {...fadeUp(0.4, still)} className="glass" style={{ marginBottom: 12 }}>
+        <BlockHeader>Habitudes et humeur</BlockHeader>
         <HabitMoodChart data={data} />
       </motion.div>
 
       {/* Habit streaks grid */}
-      <motion.div {...fadeUp(0.5)} className="glass" style={{ }}>
-        <BlockHeader>Current Habit Streaks</BlockHeader>
+      <motion.div {...fadeUp(0.5, still)} className="glass" style={{ }}>
+        <BlockHeader>Séries en cours</BlockHeader>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {data.habits.map((h) => {
             const streak = getHabitStreak(h);

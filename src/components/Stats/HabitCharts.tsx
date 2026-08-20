@@ -4,7 +4,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, LabelList,
 } from 'recharts';
-import { heatColor, shade } from './heatColor';
+import { heatColor } from './heatColor';
+import { shade, defId } from '../../utils/color';
 import { centeredAvg } from './smooth';
 import { MoodFace } from '../ui/MoodFace';
 import { MOOD_LABEL } from '../ui/mood';
@@ -19,7 +20,7 @@ import { useTheme } from '../../ThemeContext';
 const SMOOTH_WINDOW = 3;
 
 /** Gradient ids derive from the colour, so bars of one tier share a single def. */
-const gradId = (c: string) => `clay-${c.replace('#', '')}`;
+const gradId = (c: string) => defId('clay', c);
 
 interface ChartPoint {
   label: string;
@@ -124,8 +125,8 @@ export function HabitScoreChart({ data }: Readonly<ScoreChartProps>) {
               return (
                 <TooltipBox>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                  <div>Daily: <b>{pct}%</b></div>
-                  <div>7-day avg: <b>{rolling}%</b></div>
+                  <div>Jour : <b>{pct}%</b></div>
+                  <div>Moy. 7j : <b>{rolling}%</b></div>
                 </TooltipBox>
               );
             }}
@@ -143,8 +144,8 @@ export function HabitScoreChart({ data }: Readonly<ScoreChartProps>) {
         </ComposedChart>
       </ResponsiveContainer>
       <Legend items={[
-        { color: T.emerald, opacity: 0.5, label: 'daily %' },
-        { color: T.emerald, opacity: 1,   label: '7-day avg' },
+        { color: T.emerald, opacity: 0.5, label: '% du jour' },
+        { color: T.emerald, opacity: 1,   label: 'moyenne 7j' },
       ]} />
     </div>
   );
@@ -414,7 +415,7 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
         <button
           onClick={() => setInverted(v => !v)}
           style={buttonStyle}
-          title={inverted ? 'Showing: days done → days NOT done' : 'Showing: days done as checked'}
+          title={inverted ? 'Affiché : jours NON faits' : 'Affiché : jours faits'}
         >
           {inverted ? '↕ Inversé' : '↕ Inverser'}
         </button>
@@ -441,7 +442,7 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
 
       {displayPoints.length === 0 ? (
         <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-          No data for this habit yet.
+          Aucune donnée pour cette habitude.
         </div>
       ) : (
         <>
@@ -466,8 +467,8 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
                   const point = payload[0].payload as WeekBarPoint & { display: number };
                   return (
                     <TooltipBox>
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>Week {point.label}</div>
-                      <div><b>{point.display}</b>/{point.activeDays} active days {inverted ? '(inversé)' : ''}</div>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>Semaine {point.label}</div>
+                      <div><b>{point.display}</b>/{point.activeDays} jours actifs {inverted ? '(inversé)' : ''}</div>
                     </TooltipBox>
                   );
                 }}
@@ -516,8 +517,8 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
             </BarChart>
           </ResponsiveContainer>
           <Legend items={[
-            { color: T.aqua, opacity: 1, label: `avg. all weeks (${weeklyAvg})` },
-            { color: T.amber, opacity: 1, label: `avg. current month (${monthlyAvg})` },
+            { color: T.aqua, opacity: 1, label: `moy. toutes semaines (${weeklyAvg})` },
+            { color: T.amber, opacity: 1, label: `moy. mois en cours (${monthlyAvg})` },
           ]} />
         </>
       )}
@@ -531,7 +532,7 @@ function Empty() {
   const { T } = useTheme();
   return (
     <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-      No habit data yet.
+      Aucune donnée d'habitude.
     </div>
   );
 }

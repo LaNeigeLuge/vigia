@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Section } from './types';
 import { useAppData } from './hooks/useAppData';
 import { useIsMobile, useIsWide } from './hooks/useMediaQuery';
@@ -9,13 +9,25 @@ import { NavBar } from './components/layout/NavBar';
 import { BottomNav } from './components/layout/BottomNav';
 import { AuthPage } from './components/Auth/AuthPage';
 import { Today } from './components/Today/Today';
+import logoLoad from './assets/logo-load.png';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { WeeklyView } from './components/WeeklyView/WeeklyView';
 import { HabitTracker } from './components/HabitTracker/HabitTracker';
 import { Stats } from './components/Stats/Stats';
 
 const ease = [0.4, 0, 0.2, 1] as const;
-const sectionVariants = {
+
+/**
+ * The CSS reset in index.css only reaches CSS transitions and keyframes —
+ * Framer Motion drives inline transforms from JS and needs asking directly.
+ * Reduced motion keeps the crossfade and drops the travel: the spatial cue goes,
+ * the state change is still visible.
+ */
+const sectionVariants = (still: boolean) => still ? {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.01 } },
+  exit:    { opacity: 0, transition: { duration: 0.01 } },
+} : {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
   exit:    { opacity: 0, y: -10, transition: { duration: 0.2 } },
@@ -43,7 +55,12 @@ function LoadingScreen() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 12,
     }}>
-      <div style={{ fontSize: 36 }}>🌿</div>
+      <img
+        src={logoLoad}
+        alt="vigia"
+        className="logo-breathe"
+        style={{ width: 240, maxWidth: '70vw', height: 'auto' }}
+      />
       <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>
         Chargement…
       </div>
@@ -64,6 +81,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
   const { dark, T } = useTheme();
   const isWide = useIsWide();
   const isMobile = useIsMobile();
+  const still = useReducedMotion() ?? false;
 
   // Wide screens show Today and the summary together, so 'dashboard' has no
   // destination of its own. Folded at render time rather than synced in an
@@ -115,7 +133,12 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
       {loading && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🌿</div>
+            <img
+              src={logoLoad}
+              alt="vigia"
+              className="logo-breathe"
+              style={{ width: 210, maxWidth: '65vw', height: 'auto', marginBottom: 14 }}
+            />
             <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>Chargement de tes données…</div>
           </div>
         </div>
@@ -141,7 +164,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
         paddingBottom: isMobile ? 'calc(72px + env(safe-area-inset-bottom, 0px))' : 24,
       }}>
         <AnimatePresence mode="wait">
-          <motion.div key={activeSection} variants={sectionVariants} initial="initial" animate="animate" exit="exit">
+          <motion.div key={activeSection} variants={sectionVariants(still)} initial="initial" animate="animate" exit="exit">
             {activeSection === 'today' && (
               <div style={{
                 display: isWide ? 'grid' : 'block',

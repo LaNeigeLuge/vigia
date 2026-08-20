@@ -1,4 +1,5 @@
 import { useTheme } from '../../ThemeContext';
+import { shade, defId } from '../../utils/color';
 
 interface DonutChartProps {
   done: number;
@@ -26,10 +27,27 @@ export function DonutChart({ done, total, size = 120, strokeWidth = 14, label, s
   else if (pct >= 51) ringColor = T.sage;
   else if (pct >= 26) ringColor = T.aqua;
 
+  // Keyed on what the def contains, so two donuts of the same colour and weight
+  // share one gradient instead of colliding on a hardcoded id.
+  const gradientId = defId('donut', ringColor, strokeWidth);
+  const shadowId   = defId('donutShadow', strokeWidth);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        {/* Track ring */}
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+        {/* The ring is the most rolled-cylinder shape in the app and was the
+            flattest: a light→dark gradient plus one soft shadow is what makes it
+            read as modelled rather than printed. The caps were already round. */}
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0.35" y2="1">
+            <stop offset="0%"   stopColor={shade(ringColor, 0.24)} />
+            <stop offset="100%" stopColor={shade(ringColor, -0.18)} />
+          </linearGradient>
+          <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.2" floodOpacity="0.20" />
+          </filter>
+        </defs>
+        {/* Track — a groove rather than a flat band */}
         <circle
           cx={center} cy={center} r={radius}
           fill="none"
@@ -40,11 +58,12 @@ export function DonutChart({ done, total, size = 120, strokeWidth = 14, label, s
         <circle
           cx={center} cy={center} r={radius}
           fill="none"
-          stroke={ringColor}
+          stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
           strokeLinecap="round"
+          filter={pct > 0 ? `url(#${shadowId})` : undefined}
           style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)' }}
         />
         {/* Center % text */}

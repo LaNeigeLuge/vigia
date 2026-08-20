@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { AppData, Task } from '../../types';
 import { useTheme } from '../../ThemeContext';
 import {
@@ -7,11 +7,35 @@ import {
   getMonthYearLabelFr, getWeekdayLabelFr, getWeekStartKey,
 } from '../../utils/dateUtils';
 import { getDayEntries, getHabitStreak } from '../../utils/dataUtils';
+import { shade } from '../../utils/color';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 
-/** Bullet-journal notation. `>` means migrated to another day. */
-const GLYPH = { open: '•', done: '✗', migrated: '>' } as const;
+/** Bullet-journal notation, kept as the non-colour channel. */
+const GLYPH = { task: '•', done: '✗', moved: '>', habit: '○' } as const;
+
+/**
+ * Rolled clay: a light→dark ramp lit from the top left, a lift shadow, and a
+ * highlight on the upper edge. Done presses the strip *into* the ground rather
+ * than greying it out — the shape carries the state, so the label never has to
+ * fade below its contrast floor.
+ */
+function claySurface(colour: string, ground: string, done: boolean, dark: boolean) {
+  if (done) {
+    return {
+      background: `color-mix(in oklab, ${colour} 40%, ${ground})`,
+      boxShadow: dark
+        ? 'inset 0 3px 8px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.12)'
+        : 'inset 0 3px 7px rgba(80,64,48,0.26), inset 0 -1px 0 rgba(255,255,255,0.40)',
+    };
+  }
+  return {
+    backgroundImage: `linear-gradient(158deg, ${shade(colour, 0.24)}, ${colour} 52%, ${shade(colour, -0.16)})`,
+    boxShadow: dark
+      ? '0 1px 0 rgba(255,255,255,0.18) inset, 0 -1px 0 rgba(0,0,0,0.40) inset, 0 6px 16px rgba(0,0,0,0.45)'
+      : '0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(60,45,30,0.14) inset, 0 5px 12px rgba(80,64,48,0.18)',
+  };
+}
 
 interface TodayProps {
   data: AppData;
@@ -23,44 +47,117 @@ interface TodayProps {
   onToggleHabit: (habitId: string, dayKey: string) => void;
 }
 
-// ─── Dated header ─────────────────────────────────────────────────────────────
+// ─── One clay strip ───────────────────────────────────────────────────────────
 
-function StatCell({ value, label }: Readonly<{ value: string; label: string }>) {
-  const { T } = useTheme();
+function Strip({
+  colour, glyph, label, done, dim, onToggle, children,
+}: Readonly<{
+  colour: string;
+  glyph: string;
+  label: string;
+  done: boolean;
+  /** The `>` trace of an entry that left: readable, not operable. */
+  dim?: boolean;
+  onToggle?: () => void;
+  /** Slot for the ⋯ button, so the strip stays one tap = one toggle. */
+  children?: React.ReactNode;
+}>) {
+  const { T, dark } = useTheme();
+
   return (
-    <div style={{ flex: 1, textAlign: 'center' }}>
-      <div style={{
-        fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 26,
-        color: T.margin, lineHeight: 1,
-        // Keeps the three cells from jittering as the numbers change width.
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontSize: 10, marginTop: 4, color: T.marginInk,
-        fontFamily: 'DM Sans, sans-serif', fontWeight: 600,
-        textTransform: 'uppercase', letterSpacing: '0.1em',
-      }}>
-        {label}
-      </div>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+      <button
+        onClick={onToggle}
+        disabled={!onToggle}
+        aria-pressed={onToggle ? done : undefined}
+        aria-label={onToggle ? `${label} — marquer comme fait` : `${label} — migrée`}
+        style={{
+          flex: 1, minWidth: 0, minHeight: 48,
+          display: 'flex', alignItems: 'center', gap: 11,
+          padding: '12px 52px 12px 17px',
+          textAlign: 'left', border: 'none', borderRadius: 9999,
+          color: T.clayInk,
+          cursor: onToggle ? 'pointer' : 'default',
+          opacity: dim ? 0.72 : 1,
+          transition: 'background 0.18s, box-shadow 0.18s, transform 0.12s',
+          ...claySurface(colour, T.bg, done, dark),
+        }}
+      >
+        <span aria-hidden style={{
+          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15,
+          width: 13, flexShrink: 0, textAlign: 'center', opacity: 0.85,
+        }}>
+          {glyph}
+        </span>
+        <span style={{
+          fontFamily: 'DM Sans, sans-serif', fontSize: 15, lineHeight: 1.4,
+          textDecoration: done || dim ? 'line-through' : 'none',
+          wordBreak: 'break-word',
+        }}>
+          {label}
+        </span>
+      </button>
+      {children}
     </div>
   );
 }
 
-// ─── One line of the log ──────────────────────────────────────────────────────
+/** Opens the action row. Separate from the strip so one tap stays one toggle. */
+function MoreBtn({ open, onClick, label }: Readonly<{
+  open: boolean; onClick: () => void; label: string;
+}>) {
+  const { T } = useTheme();
+  return (
+    <button
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={`Actions pour ${label}`}
+      style={{
+        position: 'absolute', right: 4, top: 0, bottom: 0,
+        width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'none', border: 'none', borderRadius: 9999,
+        color: T.clayInk, opacity: 0.55, cursor: 'pointer',
+        fontSize: 17, letterSpacing: '0.08em',
+      }}
+    >
+      ⋯
+    </button>
+  );
+}
 
-function LogRow({
-  task, migratedAway, onToggle, onUpdateText, onDelete, onMigrate,
+function ActionBtn({ onClick, children, danger = false }: Readonly<{
+  onClick: () => void; children: React.ReactNode; danger?: boolean;
+}>) {
+  const { T } = useTheme();
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1, minHeight: 46,
+        background: 'none', border: 'none',
+        color: danger ? '#b3402f' : T.textSecondary,
+        fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600,
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function LogStrip({
+  task, migratedAway, isNext, onToggle, onUpdateText, onDelete, onMigrate,
 }: Readonly<{
   task: Task;
   migratedAway: boolean;
+  isNext: boolean;
   onToggle: () => void;
   onUpdateText: (text: string) => void;
   onDelete: () => void;
   onMigrate: (toDayKey: string | null) => void;
 }>) {
   const { T } = useTheme();
+  const still = useReducedMotion() ?? false;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
@@ -73,85 +170,63 @@ function LogRow({
     else if (!trimmed) onDelete();
   };
 
-  const startEdit = () => {
-    setEditing(true);
-    setDraft(task.text);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  };
+  let colour = T.clayTask;
+  if (migratedAway) colour = T.clayMoved;
+  else if (isNext) colour = T.clayNext;
 
-  let glyph: string = GLYPH.open;
-  if (migratedAway) glyph = GLYPH.migrated;
+  let glyph: string = GLYPH.task;
+  if (migratedAway) glyph = GLYPH.moved;
   else if (task.completed) glyph = GLYPH.done;
 
-  const struck = migratedAway || task.completed;
+  if (editing) {
+    return (
+      <div style={{
+        minHeight: 48, display: 'flex', alignItems: 'center',
+        padding: '0 17px', borderRadius: 9999,
+        boxShadow: `0 0 0 2px ${T.glassBorderEm} inset`,
+      }}>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitEdit();
+            if (e.key === 'Escape') { setEditing(false); setDraft(task.text); }
+          }}
+          autoFocus
+          className="inline-edit"
+          style={{ fontSize: 15, color: T.textPrimary }}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div style={{ borderBottom: `1px solid ${T.sheetDot}` }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 44 }}>
+    <div>
+      <Strip
+        colour={colour}
+        glyph={glyph}
+        label={task.text}
+        done={task.completed}
+        dim={migratedAway}
+        onToggle={migratedAway ? undefined : onToggle}
+      >
+        <MoreBtn open={open} onClick={() => setOpen((v) => !v)} label={task.text} />
+      </Strip>
 
-        {/* Margin rail + notation glyph — also the done toggle */}
-        <button
-          onClick={migratedAway ? undefined : onToggle}
-          disabled={migratedAway}
-          aria-label={migratedAway ? `${task.text} — migrée` : `Marquer ${task.text} comme faite`}
-          aria-pressed={migratedAway ? undefined : task.completed}
-          style={{
-            width: 44, flexShrink: 0,
-            background: 'none', border: 'none',
-            borderRight: `1px solid ${T.margin}`,
-            color: T.margin,
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18,
-            cursor: migratedAway ? 'default' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          {glyph}
-        </button>
-
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitEdit();
-              if (e.key === 'Escape') { setEditing(false); setDraft(task.text); }
-            }}
-            className="inline-edit"
-            style={{ flex: 1, padding: '0 14px', fontSize: 15, color: T.textPrimary }}
-          />
-        ) : (
-          <button
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            style={{
-              flex: 1, textAlign: 'left', background: 'none', border: 'none',
-              padding: '10px 14px', cursor: 'pointer',
-              fontFamily: 'DM Sans, sans-serif', fontSize: 15, lineHeight: 1.5,
-              color: struck ? T.textMuted : T.textPrimary,
-              textDecoration: struck ? 'line-through' : 'none',
-              opacity: struck ? 0.55 : 1,
-              wordBreak: 'break-word',
-            }}
-          >
-            {task.text}
-          </button>
-        )}
-      </div>
-
-      {/* Tap-revealed actions. Deliberately buttons, not a swipe: WCAG 2.2 AA
-          wants a single-pointer path that isn't a gesture. */}
+      {/* Buttons, never a swipe: WCAG 2.2 AA wants a single-pointer path that
+          isn't a gesture. */}
       <AnimatePresence initial={false}>
-        {open && !editing && (
+        {open && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
+            initial={still ? false : { height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease }}
+            exit={still ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: still ? 0 : 0.18, ease }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ display: 'flex', paddingLeft: 44, background: T.sheetDot }}>
+            <div style={{ display: 'flex', padding: '0 12px' }}>
               {migratedAway ? (
                 <ActionBtn onClick={() => { onMigrate(null); setOpen(false); }}>
                   ↩ Annuler la migration
@@ -159,9 +234,14 @@ function LogRow({
               ) : (
                 <>
                   <ActionBtn onClick={() => { onMigrate(formatDayKey(addDays(new Date(), 1))); setOpen(false); }}>
-                    {GLYPH.migrated} Demain
+                    {GLYPH.moved} Demain
                   </ActionBtn>
-                  <ActionBtn onClick={() => { setOpen(false); startEdit(); }}>✎ Modifier</ActionBtn>
+                  <ActionBtn onClick={() => {
+                    setOpen(false); setEditing(true); setDraft(task.text);
+                    setTimeout(() => inputRef.current?.focus(), 0);
+                  }}>
+                    ✎ Modifier
+                  </ActionBtn>
                   <ActionBtn onClick={onDelete} danger>× Supprimer</ActionBtn>
                 </>
               )}
@@ -170,27 +250,6 @@ function LogRow({
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ActionBtn({ onClick, children, danger = false }: Readonly<{
-  onClick: () => void; children: React.ReactNode; danger?: boolean;
-}>) {
-  const { T } = useTheme();
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1, minHeight: 48,
-        background: 'none', border: 'none',
-        borderRight: `1px solid ${T.sheetDot}`,
-        color: danger ? '#b3402f' : T.marginInk,
-        fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600,
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -209,8 +268,16 @@ export function Today({
   const weekKey = getWeekStartKey(today);
 
   const entries = getDayEntries(data, dayKey);
-  const remaining = entries.filter((e) => !e.migratedAway && !e.task.completed).length;
   const streak = data.habits.reduce((best, h) => Math.max(best, getHabitStreak(h)), 0);
+
+  /**
+   * One sun per day, like the logo. The first open task, or the first open habit
+   * if every task is done — never two.
+   */
+  const nextTaskId = entries.find((e) => !e.migratedAway && !e.task.completed)?.task.id;
+  const nextHabitId = nextTaskId
+    ? undefined
+    : data.habits.find((h) => !h.completions[dayKey])?.id;
 
   const commitAdd = () => {
     const trimmed = newText.trim();
@@ -219,55 +286,48 @@ export function Today({
     setAdding(false);
   };
 
-  const sheet: React.CSSProperties = {
-    background: T.sheet,
-    border: `1px solid ${T.sheetDot}`,
-    borderRadius: 2,
-    // 24px dot grid — the page under the writing.
-    backgroundImage: `radial-gradient(${T.sheetDot} 1px, transparent 1px)`,
-    backgroundSize: '24px 24px',
-  };
-
   return (
-    <div style={{ padding: '16px 12px', maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ padding: '20px 14px', maxWidth: 640, margin: '0 auto' }}>
 
-      {/* Dated header */}
-      <div style={{ ...sheet, padding: '20px 18px 16px', marginBottom: 12 }}>
+      {/* The date, big. No stat tiles: aggregates belong to the summary, and
+          duplicating them here was the one thing making the two columns
+          compete. */}
+      <header style={{ marginBottom: 22 }}>
         <div style={{
           fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11,
-          textTransform: 'uppercase', letterSpacing: '0.18em', color: T.marginInk,
+          textTransform: 'uppercase', letterSpacing: '0.18em', color: T.textMuted,
         }}>
           {getWeekdayLabelFr(today)}
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 2 }}>
-          <span style={{
-            fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 46,
-            color: T.textPrimary, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-          }}>
-            {getDayNumber(today)}
-          </span>
-          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: T.marginInk }}>
-            {getMonthYearLabelFr(today)}
-          </span>
-        </div>
-
         <div style={{
-          display: 'flex', marginTop: 18, paddingTop: 14,
-          borderTop: `1px solid ${T.margin}`,
+          fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 76,
+          lineHeight: 0.86, letterSpacing: '-0.05em', margin: '4px 0 2px',
+          color: T.clayTask, fontVariantNumeric: 'tabular-nums',
+          backgroundImage: `linear-gradient(158deg, ${shade(T.clayTask, 0.28)}, ${T.clayTask} 46%, ${shade(T.clayTask, -0.18)})`,
+          WebkitBackgroundClip: 'text', backgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
         }}>
-          <StatCell value={String(remaining)} label="restant" />
-          <StatCell value={String(getISOWeekNumber(today))} label="semaine" />
-          <StatCell value={String(streak)} label="série" />
+          {getDayNumber(today)}
         </div>
-      </div>
+        <div style={{
+          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11,
+          textTransform: 'uppercase', letterSpacing: '0.14em', color: T.textMuted,
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {getMonthYearLabelFr(today)} · s{getISOWeekNumber(today)}
+          {streak > 0 && ` · série ${streak}j`}
+        </div>
+      </header>
 
-      {/* The log */}
-      <div style={{ ...sheet, marginBottom: 12, overflow: 'hidden' }}>
+      {/* Tasks then habits, one list. Colour separates them, so no section
+          heading is needed. */}
+      <div style={{ display: 'grid', gap: 8 }}>
         {entries.map(({ task, migratedAway }) => (
-          <LogRow
+          <LogStrip
             key={`${task.id}-${migratedAway ? 'from' : 'on'}`}
             task={task}
             migratedAway={migratedAway}
+            isNext={task.id === nextTaskId}
             onToggle={() => onToggleTask(task.weekStart, task.id)}
             onUpdateText={(text) => onUpdateTask(task.weekStart, task.id, text)}
             onDelete={() => onDeleteTask(task.weekStart, task.id)}
@@ -275,25 +335,26 @@ export function Today({
           />
         ))}
 
-        {entries.length === 0 && !adding && (
-          <div style={{
-            padding: '28px 16px', textAlign: 'center',
-            fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: T.marginInk,
-          }}>
-            Rien d'écrit aujourd'hui.
-          </div>
-        )}
+        {data.habits.map((habit) => {
+          const done = !!habit.completions[dayKey];
+          return (
+            <Strip
+              key={habit.id}
+              colour={habit.id === nextHabitId ? T.clayNext : T.clayHabit}
+              glyph={done ? GLYPH.done : GLYPH.habit}
+              label={habit.name}
+              done={done}
+              onToggle={() => onToggleHabit(habit.id, dayKey)}
+            />
+          );
+        })}
 
         {adding ? (
-          <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-            <span style={{
-              width: 44, flexShrink: 0, textAlign: 'center',
-              borderRight: `1px solid ${T.margin}`, alignSelf: 'stretch',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: T.margin,
-            }}>
-              {GLYPH.open}
-            </span>
+          <div style={{
+            minHeight: 48, display: 'flex', alignItems: 'center',
+            padding: '0 17px', borderRadius: 9999,
+            boxShadow: `0 0 0 2px ${T.glassBorderEm} inset`,
+          }}>
             <input
               ref={addRef}
               value={newText}
@@ -306,76 +367,31 @@ export function Today({
               autoFocus
               placeholder="Écrire une entrée…"
               className="inline-edit"
-              style={{ flex: 1, padding: '0 14px', fontSize: 15, color: T.textPrimary }}
+              style={{ fontSize: 15, color: T.textPrimary }}
             />
           </div>
         ) : (
           <button
             onClick={() => { setAdding(true); setTimeout(() => addRef.current?.focus(), 0); }}
             style={{
-              display: 'block', width: '100%', minHeight: 48, textAlign: 'left',
-              padding: '0 14px 0 44px', background: 'none', border: 'none',
-              cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-              fontSize: 14, fontWeight: 600, color: T.marginInk,
+              minHeight: 48, display: 'flex', alignItems: 'center',
+              padding: '0 17px', borderRadius: 9999,
+              background: 'none', border: 'none', textAlign: 'left',
+              boxShadow: `0 0 0 1.5px ${T.glassBorder} inset`,
+              color: T.textSecondary, cursor: 'pointer',
+              fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 600,
             }}
           >
             + Ajouter une entrée
           </button>
         )}
-      </div>
 
-      {/* Tracker */}
-      <div style={{ ...sheet, overflow: 'hidden' }}>
-        <div style={{
-          padding: '10px 14px', borderBottom: `1px solid ${T.margin}`,
-          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
-          textTransform: 'uppercase', letterSpacing: '0.16em', color: T.marginInk,
-        }}>
-          Tracker
-        </div>
-
-        {data.habits.map((habit) => {
-          const done = !!habit.completions[dayKey];
-          return (
-            <button
-              key={habit.id}
-              onClick={() => onToggleHabit(habit.id, dayKey)}
-              aria-pressed={done}
-              style={{
-                display: 'flex', alignItems: 'center', width: '100%',
-                minHeight: 44, padding: 0,
-                background: 'none', border: 'none',
-                borderBottom: `1px solid ${T.sheetDot}`,
-                cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              <span style={{
-                width: 44, flexShrink: 0, alignSelf: 'stretch',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRight: `1px solid ${T.margin}`,
-                fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18,
-                color: done ? T.emerald : T.margin,
-              }}>
-                {done ? '✗' : '○'}
-              </span>
-              <span style={{
-                padding: '10px 14px', fontFamily: 'DM Sans, sans-serif', fontSize: 15,
-                color: done ? T.textMuted : T.textPrimary,
-                textDecoration: done ? 'line-through' : 'none',
-                opacity: done ? 0.55 : 1,
-              }}>
-                {habit.name}
-              </span>
-            </button>
-          );
-        })}
-
-        {data.habits.length === 0 && (
+        {entries.length === 0 && data.habits.length === 0 && !adding && (
           <div style={{
-            padding: '20px 16px', textAlign: 'center',
-            fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: T.marginInk,
+            padding: '18px 4px', fontFamily: 'DM Sans, sans-serif',
+            fontSize: 14, color: T.textMuted,
           }}>
-            Aucune habitude — ajoute-les dans Habitudes.
+            Rien d'écrit aujourd'hui.
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ import {
 } from '../../utils/dateUtils';
 import { getDayEntries } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { pressedStyle } from '../../utils/color';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 interface WeeklyViewProps {
@@ -29,7 +30,7 @@ export function WeeklyView({
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask,
   onAddTodo, onToggleTodo, onDeleteTodo,
 }: Readonly<WeeklyViewProps>) {
-  const { T } = useTheme();
+  const { T, dark } = useTheme();
   const isMobile = useIsMobile();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
   const [selectedDayKey, setSelectedDayKey] = useState(() => formatDayKey(new Date()));
@@ -100,18 +101,19 @@ export function WeeklyView({
 
   return (
     <div style={{ padding: isMobile ? '12px' : '20px' }}>
-      {/* Week nav header */}
-      <div
-        className="glass"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '8px 16px',
-          gap: 12,
-          marginBottom: 0,
-          borderRadius: '2px 2px 0 0',
-        }}
-      >
+      {/* One panel: header and body were two boxes glued together, the first
+          borderless with a shadow and the second outlined — the app dropped
+          outlines, so the seam showed. .glass already clips its children. */}
+      <div className="glass">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 16px',
+            gap: 12,
+            borderBottom: `1px solid ${T.glassBorderEm}`,
+          }}
+        >
         <NavBtn onClick={() => navigateWeek(-1)}>‹</NavBtn>
 
         <div style={{ flex: 1, textAlign: 'center' }}>
@@ -125,7 +127,7 @@ export function WeeklyView({
             <span style={{
               marginLeft: 10, fontSize: 10, color: T.textMuted,
               background: T.trackBg,
-              padding: '2px 7px', borderRadius: 2,
+              padding: '3px 9px', borderRadius: 9999,
             }}>
               Lecture seule
             </span>
@@ -142,7 +144,7 @@ export function WeeklyView({
               border: `1px solid ${T.glassBorderEm}`,
               color: T.emerald, padding: '4px 12px',
               cursor: 'pointer', fontSize: 11, fontWeight: 600,
-              borderRadius: 2, fontFamily: 'DM Sans, sans-serif',
+              borderRadius: 8, fontFamily: 'DM Sans, sans-serif',
             }}
           >
             Aujourd'hui
@@ -155,8 +157,8 @@ export function WeeklyView({
         <>
           <div style={{
             display: 'flex', gap: 4,
-            border: `1px solid ${T.glassBorder}`, borderTop: 'none',
-            background: T.glassBg, padding: '8px 6px',
+            background: T.rowHoverBg, padding: '8px 6px',
+            borderBottom: `1px solid ${T.glassBorder}`,
           }}>
             {weekDays.map((day) => {
               const dayKey = formatDayKey(day);
@@ -174,9 +176,9 @@ export function WeeklyView({
                     flex: 1, minWidth: 0, minHeight: 52,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', gap: 2,
-                    background: selected ? T.checkedCellBg : 'transparent',
+                    ...pressedStyle(selected, T.checkedCellBg, dark),
                     border: `1px solid ${selected ? T.glassBorderEm : 'transparent'}`,
-                    borderRadius: 2, cursor: 'pointer',
+                    borderRadius: 10, cursor: 'pointer',
                     color: isDateToday(day) ? T.emerald : T.textSecondary,
                   }}
                 >
@@ -202,25 +204,14 @@ export function WeeklyView({
             })}
           </div>
 
-          <div style={{
-            border: `1px solid ${T.glassBorder}`, borderTop: 'none',
-            borderRadius: '0 0 2px 2px', overflow: 'hidden',
-          }}>
-            {renderDay(activeDayKey, true)}
-          </div>
+          <div>{renderDay(activeDayKey, true)}</div>
         </>
       ) : (
         /* Scrollable day columns */
         <div
           ref={scrollRef}
           className="weekly-scroll"
-          style={{
-            display: 'flex',
-            border: `1px solid ${T.glassBorder}`,
-            borderTop: 'none',
-            borderRadius: '0 0 2px 2px',
-            overflow: 'hidden',
-          }}
+          style={{ display: 'flex' }}
         >
           {weekDays.map((day, i) => {
             const dayKey = formatDayKey(day);
@@ -238,6 +229,8 @@ export function WeeklyView({
       )}
 
       {/* Backlog intemporel */}
+      </div>
+
       <Backlog
         todos={data.todos}
         onAdd={onAddTodo}
@@ -263,7 +256,7 @@ function NavBtn({ onClick, disabled = false, children }: Readonly<{
         color: disabled ? T.textMuted : T.emerald,
         width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
         fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 2, transition: 'all 0.18s',
+        borderRadius: 8, transition: 'all 0.18s',
       }}
     >
       {children}

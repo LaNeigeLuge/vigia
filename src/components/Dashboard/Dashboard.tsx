@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -13,12 +13,16 @@ import { formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } 
 import { getDailyQuote, getDayCompletionRate, getHabitStreak, getWeekCompletionRate } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { shade, defId } from '../../utils/color';
 
 const ease = [0.4, 0, 0.2, 1] as const;
-const fadeUp = (delay = 0) => ({
+const fadeUp = (delay = 0, still = false) => still ? {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
+} : {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease } },
-});
+};
 
 interface DashboardProps {
   data: AppData;
@@ -32,12 +36,11 @@ function GlassPanel({ children, style = {}, className = '' }: Readonly<{
   style?: React.CSSProperties;
   className?: string;
 }>) {
-  const { T } = useTheme();
+  // No inline radius or shadow: both were overriding .glass, which is why these
+  // four panels stayed square at radius 2 with the old 8%-opacity shadow while
+  // every other panel in the app had already moved to 14 and a real one.
   return (
-    <div
-      className={`glass ${className}`}
-      style={{ borderRadius: 2, boxShadow: T.shadowSm, ...style }}
-    >
+    <div className={`glass ${className}`} style={style}>
       {children}
     </div>
   );
@@ -63,6 +66,9 @@ function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
 export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Readonly<DashboardProps>) {
   const { T } = useTheme();
   const isMobile = useIsMobile();
+  const still = useReducedMotion() ?? false;
+  const barGrad   = defId('dashBar', T.emerald);
+  const barShadow = defId('dashBarShadow');
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
   const { done, total } = getWeekCompletionRate(data, currentWeekKey);
@@ -78,17 +84,17 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
     <div style={{ padding: isMobile ? '12px' : '20px', maxWidth: 920, margin: '0 auto' }}>
 
       {/* Mood picker */}
-      <motion.div {...fadeUp(0)}>
+      <motion.div {...fadeUp(0, still)}>
         <MoodPicker moods={data.moods} onSetMood={onSetMood} />
       </motion.div>
 
       {/* Emotional check-ins */}
-      <motion.div {...fadeUp(0.05)}>
+      <motion.div {...fadeUp(0.05, still)}>
         <EmotionalCheckIn checkins={data.emotionalCheckins} onSetCheckin={onSetCheckin} />
       </motion.div>
 
       {/* Week label */}
-      <motion.div {...fadeUp(0.1)} style={{ marginBottom: 16 }}>
+      <motion.div {...fadeUp(0.1, still)} style={{ marginBottom: 16 }}>
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontWeight: 700,
@@ -102,7 +108,7 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
 
       {/* Top row: donut + bar chart */}
       {/* Phone: stack. 220px + a 1fr sibling leaves the chart ~100px on a 375. */}
-      <motion.div {...fadeUp(0.1)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 12, marginBottom: 12 }}>
+      <motion.div {...fadeUp(0.1, still)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 12, marginBottom: 12 }}>
 
         {/* Weekly donut */}
         <GlassPanel style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -143,25 +149,45 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
                 formatter={(v) => [v ?? 0, 'Tâches faites']}
                 cursor={{ fill: T.rowHoverBg }}
               />
-              <Bar dataKey="tasks" fill={T.emerald} radius={[3, 3, 0, 0]} maxBarSize={28} />
+              {/* Same treatment as the weekly bars in Stats — two bar charts
+                  with two different finishes was the loudest inconsistency. */}
+              <defs>
+                <linearGradient id={barGrad} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={shade(T.emerald, 0.20)} />
+                  <stop offset="100%" stopColor={shade(T.emerald, -0.16)} />
+                </linearGradient>
+                <filter id={barShadow} x="-40%" y="-20%" width="180%" height="150%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2.2" floodOpacity="0.20" />
+                </filter>
+              </defs>
+              <Bar
+                dataKey="tasks"
+                fill={`url(#${barGrad})`}
+                radius={[8, 8, 2, 2]}
+                maxBarSize={28}
+                filter={`url(#${barShadow})`}
+              />
             </BarChart>
           </ResponsiveContainer>
         </GlassPanel>
       </motion.div>
 
       {/* Bottom row: quote + habit streaks */}
-      <motion.div {...fadeUp(0.2)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+      <motion.div {...fadeUp(0.2, still)} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
 
         {/* Quote */}
         <GlassPanel style={{ padding: '20px' }}>
           <SectionLabel>Citation du jour</SectionLabel>
           <div style={{
-            borderLeft: `2px solid ${T.emerald}`,
-            paddingLeft: 12,
+            // A 2px hairline is the one mark the DA never uses. A rounded
+            // 5px rule reads as a rolled strip instead of a rule.
+            borderLeft: `5px solid ${T.sage}`,
+            borderRadius: 9999,
+            paddingLeft: 14,
             fontStyle: 'italic',
             color: T.textSecondary,
-            fontSize: 13,
-            lineHeight: 1.65,
+            fontSize: 14,
+            lineHeight: 1.7,
           }}>
             "{quote}"
           </div>
@@ -184,8 +210,8 @@ export function Dashboard({ data, currentWeekKey, onSetMood, onSetCheckin }: Rea
                   }}>
                     {habit.name}
                   </div>
-                  <div style={{ width: 80 }}>
-                    <ProgressBar done={streak} total={7} height={4} color={barColor} />
+                  <div style={{ width: 84 }}>
+                    <ProgressBar done={streak} total={7} height={9} color={barColor} />
                   </div>
                   <div style={{
                     minWidth: 38, textAlign: 'right', fontSize: 12,

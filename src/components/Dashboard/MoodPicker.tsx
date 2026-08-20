@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { MoodValue } from '../../types';
 import { formatDayKey, addDays, getDayLabel, getDayNumber } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { pressedStyle } from '../../utils/color';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { MoodFace } from '../ui/MoodFace';
 import { MOOD_LABEL } from '../ui/mood';
@@ -18,7 +19,8 @@ interface MoodRowProps {
 }
 
 function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProps>) {
-  const { T } = useTheme();
+  const { T, dark } = useTheme();
+  const still = useReducedMotion() ?? false;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{
@@ -38,7 +40,7 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
             <motion.button
               key={value}
               onClick={() => onSetMood(dayKey, value)}
-              whileTap={{ scale: 0.9 }}
+              whileTap={still ? undefined : { scale: 0.9 }}
               title={moodLabel}
               aria-pressed={isSelected}
               style={{
@@ -51,7 +53,7 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
                 minHeight: 44,
                 borderRadius: 4,
                 border: `1.5px solid ${isSelected ? T.glassBorderEm : T.glassBorder}`,
-                background: isSelected ? T.checkedCellBg : 'transparent',
+                ...pressedStyle(isSelected, T.checkedCellBg, dark),
                 cursor: 'pointer',
                 transition: 'all 0.18s',
                 // Unselected faces recede so the chosen one reads at a glance.

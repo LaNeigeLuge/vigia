@@ -1,6 +1,7 @@
 import type { Section } from '../../types';
 import { useTheme } from '../../ThemeContext';
 import { useIsMobile, useIsWide } from '../../hooks/useMediaQuery';
+import { getDayNumber, getMonthLabel, getWeekdayLabelFr } from '../../utils/dateUtils';
 import logoGreen from '../../assets/logo-nav.png';
 import logoCream from '../../assets/logo-nav-cream.png';
 import logoTex from '../../assets/logo-nav-tex.png';
@@ -40,6 +41,64 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
   const logoH = isMobile ? LOGO_H.mobile : LOGO_H.pointer;
   let logoSrc = logoTex;
   if (isMobile) logoSrc = dark ? logoCream : logoGreen;
+
+  /**
+   * On a phone the bottom bar already carries every section, so repeating them
+   * up here was dead weight. The date takes their place — but the theme toggle
+   * and sign-out live nowhere else in the app, so they stay. Sign-out keeps a
+   * word rather than an icon: no glyph reads unambiguously as "log out", and a
+   * 5-character label costs the same width as a guessable pictogram.
+   */
+  if (isMobile) {
+    const today = new Date();
+    return (
+      <nav style={{
+        background: T.navBg,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: `1px solid ${T.glassBorder}`,
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '0 12px', height: navH,
+      }}>
+        <img
+          src={logoSrc}
+          alt="vigia"
+          style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }}
+        />
+        <div style={{
+          flex: 1, minWidth: 0,
+          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 12,
+          color: T.textSecondary, textTransform: 'capitalize',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {getWeekdayLabelFr(today)} {getDayNumber(today)} {getMonthLabel(today)}
+        </div>
+        <button
+          onClick={toggle}
+          aria-label={dark ? 'Passer en clair' : 'Passer en sombre'}
+          className="tap-target"
+          style={{
+            background: 'none', border: 'none', color: T.emerald,
+            fontSize: 17, cursor: 'pointer', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {dark ? '☀' : '☽'}
+        </button>
+        <button
+          onClick={onSignOut}
+          className="tap-target"
+          style={{
+            background: 'none', border: 'none', color: T.textMuted,
+            fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+          }}
+        >
+          Sortir
+        </button>
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -98,7 +157,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
         {/* Dark mode toggle */}
         <button
           onClick={toggle}
-          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={dark ? 'Passer en clair' : 'Passer en sombre'}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -120,7 +179,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
           }}
         >
           <span style={{ fontSize: 14 }}>{dark ? '☀' : '☽'}</span>
-          {dark ? 'Light' : 'Dark'}
+          {dark ? 'Clair' : 'Sombre'}
         </button>
 
         {/* User email */}
@@ -139,7 +198,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
         {/* Logout */}
         <button
           onClick={onSignOut}
-          title="Sign out"
+          title="Se déconnecter"
           style={{
             padding: '6px 12px',
             borderRadius: 6,
@@ -154,7 +213,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
             transition: 'all 0.15s ease',
           }}
         >
-          Sign out
+          Se déconnecter
         </button>
       </div>
     </nav>

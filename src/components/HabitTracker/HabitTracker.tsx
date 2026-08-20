@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { AppData, Habit } from '../../types';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Flame } from '../ui/Flame';
@@ -7,6 +7,7 @@ import { ClayCheck, ClayDot } from '../ui/ClayCheck';
 import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { pressedStyle } from '../../utils/color';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const ease = [0.4, 0, 0.2, 1] as const;
@@ -35,7 +36,7 @@ function NavBtn({ onClick, disabled = false, children }: Readonly<{
         color: disabled ? T.textMuted : T.emerald,
         width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
         fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 2, transition: 'all 0.18s',
+        borderRadius: 8, transition: 'all 0.18s',
       }}
     >
       {children}
@@ -131,7 +132,7 @@ function HabitCard({
   onDelete: () => void;
   onToggle: (dayKey: string) => void;
 }>) {
-  const { T } = useTheme();
+  const { T, dark } = useTheme();
   const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
   const streak = getHabitStreak(habit);
 
@@ -170,7 +171,7 @@ function HabitCard({
                 flex: 1, minWidth: 0, minHeight: 44,
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 2,
-                background: checked ? T.checkedCellBg : 'transparent',
+                ...pressedStyle(checked, T.checkedCellBg, dark),
                 border: 'none', borderRight: `1px solid ${T.glassBorder}`,
                 cursor: 'pointer', transition: 'background 0.2s',
               }}
@@ -200,8 +201,9 @@ export function HabitTracker({
   data, currentWeekKey,
   onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
 }: Readonly<HabitTrackerProps>) {
-  const { T } = useTheme();
+  const { T, dark } = useTheme();
   const isMobile = useIsMobile();
+  const still = useReducedMotion() ?? false;
   const [addingHabit, setAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
@@ -239,38 +241,84 @@ export function HabitTracker({
     minWidth: 46,
   };
 
+  /**
+   * Shared by both branches: on a phone the cards float below as their own
+   * panels, so the nav is a complete one; on desktop it is the top band of a
+   * single panel that also holds the grid, which is why the divider is optional.
+   */
+  const weekNav = (withDivider: boolean) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', padding: '8px 16px', gap: 12,
+      borderBottom: withDivider ? `1px solid ${T.glassBorderEm}` : undefined,
+    }}>
+      <NavBtn onClick={() => navigateWeek(-1)}>‹</NavBtn>
+      <div style={{ flex: 1, textAlign: 'center' }}>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: T.textPrimary }}>
+          {formatWeekLabel(weekStart)}
+        </span>
+      </div>
+      <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
+      {!isCurrentWeek && (
+        <button
+          onClick={() => setViewWeekKey(currentWeekKey)}
+          style={{
+            background: T.rowHoverBg, border: `1px solid ${T.glassBorderEm}`,
+            color: T.emerald, padding: '4px 12px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, borderRadius: 8, fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          Aujourd'hui
+        </button>
+      )}
+    </div>
+  );
+
+  /** Same control in both branches: its own panel on a phone, the last band of
+   *  the grid panel on desktop. */
+  const addRow = (
+    <>
+          {addingHabit ? (
+        <div style={{ padding: '7px 10px' }}>
+          <input
+            ref={addInputRef}
+            value={newHabitName}
+            onChange={(e) => setNewHabitName(e.target.value)}
+            onBlur={commitAdd}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitAdd();
+              if (e.key === 'Escape') { setAddingHabit(false); setNewHabitName(''); }
+            }}
+            autoFocus
+            placeholder="Nom de l'habitude…"
+            className="inline-edit"
+            style={{ fontSize: 12, color: T.textPrimary, fontWeight: 500, maxWidth: 220 }}
+          />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddingHabit(true)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: isMobile ? '14px 12px' : '9px 10px',
+            fontSize: isMobile ? 14 : 12,
+            color: T.emerald, fontWeight: 600,
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          + Ajouter une habitude
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div style={{ padding: isMobile ? '12px' : '20px', overflowX: isMobile ? 'visible' : 'auto' }}>
       <div style={{ minWidth: isMobile ? 0 : 620 }}>
 
-        {/* Week navigation */}
-        <div className="glass" style={{
-          display: 'flex', alignItems: 'center', padding: '8px 16px', gap: 12,
-          marginBottom: 0, borderRadius: '2px 2px 0 0',
-        }}>
-          <NavBtn onClick={() => navigateWeek(-1)}>‹</NavBtn>
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: T.textPrimary }}>
-              {formatWeekLabel(weekStart)}
-            </span>
-          </div>
-          <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
-          {!isCurrentWeek && (
-            <button
-              onClick={() => setViewWeekKey(currentWeekKey)}
-              style={{
-                background: T.rowHoverBg, border: `1px solid ${T.glassBorderEm}`,
-                color: T.emerald, padding: '4px 12px', cursor: 'pointer',
-                fontSize: 11, fontWeight: 600, borderRadius: 2, fontFamily: 'DM Sans, sans-serif',
-              }}
-            >
-              Aujourd'hui
-            </button>
-          )}
-        </div>
-
         {isMobile ? (
-          <div style={{ marginTop: 10 }}>
+          <>
+            <div className="glass">{weekNav(false)}</div>
+            <div style={{ marginTop: 10 }}>
             {data.habits.map((habit) => (
               <HabitCard
                 key={habit.id}
@@ -281,10 +329,13 @@ export function HabitTracker({
                 onDelete={() => onDeleteHabit(habit.id)}
                 onToggle={(dayKey) => onToggleHabit(habit.id, dayKey)}
               />
-            ))}
-          </div>
+              ))}
+            </div>
+            <div className="glass" style={{ marginTop: 10 }}>{addRow}</div>
+          </>
         ) : (
-        <>
+        <div className="glass">
+        {weekNav(true)}
         {/* Header row */}
         <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
           <div style={{ ...thStyle, minWidth: 172, maxWidth: 172, textAlign: 'left', paddingLeft: 10 }}>
@@ -316,9 +367,9 @@ export function HabitTracker({
           return (
             <motion.div
               key={habit.id}
-              initial={{ opacity: 0, x: -12 }}
+              initial={still ? false : { opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.35, ease }}
+              transition={{ duration: still ? 0 : 0.35, ease }}
               style={{ display: 'flex', alignItems: 'center', borderBottom: border, background: rowBg }}
             >
               {/* Name */}
@@ -345,8 +396,8 @@ export function HabitTracker({
                       minWidth: 46, height: 38,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRight: border,
-                      background: checked ? T.checkedCellBg : 'transparent',
-                      transition: 'background 0.2s',
+                      ...pressedStyle(checked, T.checkedCellBg, dark),
+                      transition: 'background 0.2s, box-shadow 0.2s',
                     }}
                   >
                     <ClayCheck
@@ -379,43 +430,10 @@ export function HabitTracker({
             </motion.div>
           );
         })}
-        </>
-        )}
-
-        {/* Add habit row */}
-        <div style={{ borderBottom: border, background: T.glassBg }}>
-          {addingHabit ? (
-            <div style={{ padding: '7px 10px' }}>
-              <input
-                ref={addInputRef}
-                value={newHabitName}
-                onChange={(e) => setNewHabitName(e.target.value)}
-                onBlur={commitAdd}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitAdd();
-                  if (e.key === 'Escape') { setAddingHabit(false); setNewHabitName(''); }
-                }}
-                autoFocus
-                placeholder="Nom de l'habitude…"
-                className="inline-edit"
-                style={{ fontSize: 12, color: T.textPrimary, fontWeight: 500, maxWidth: 220 }}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddingHabit(true)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: isMobile ? '14px 12px' : '9px 10px',
-                fontSize: isMobile ? 14 : 12,
-                color: T.emerald, fontWeight: 600,
-                fontFamily: 'DM Sans, sans-serif',
-              }}
-            >
-              + Ajouter une habitude
-            </button>
-          )}
+        {/* Add habit row — the last band of the same panel */}
+        <div style={{ borderTop: border }}>{addRow}</div>
         </div>
+        )}
       </div>
     </div>
   );

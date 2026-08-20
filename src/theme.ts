@@ -24,13 +24,20 @@ export interface ThemeTokens {
   glowEm: string;
   tooltipBg: string;
   tooltipBorder: string;
-  /* Bullet-journal sheet (Today) */
-  sheet: string;
-  sheetDot: string;
-  /** Margin rule + notation glyphs. 3.9:1 on the sheet — large text / rules only. */
-  margin: string;
-  /** Darker margin ink for small text. 5.6:1 on the sheet. */
-  marginInk: string;
+  /* Today's clay strips. Each colour carries a state that exists in the data —
+     they are not decoration, which is what made a loose colourful layout read as
+     clutter. */
+  clayTask: string;
+  clayHabit: string;
+  /** The one accent per day, like the sun in the logo. */
+  clayNext: string;
+  /** An entry migrated in from another day. */
+  clayMoved: string;
+  /**
+   * Label ink for text sitting *on* a clay pill. Not textPrimary: #1a2e23 only
+   * reaches 4.44:1 on the lilac, just under the 4.5 a 15px label owes.
+   */
+  clayInk: string;
   /* Weekly-bar heat scale. All ≥3:1 on their own theme's panel (non-text). */
   heatFloor: string;
   heatHigh: string;
@@ -65,10 +72,11 @@ const light: ThemeTokens = {
   glowEm:        'none',
   tooltipBg:     'rgba(248,249,245,0.98)',
   tooltipBorder: 'rgba(74,124,89,0.18)',
-  sheet:         '#fbfaf6',
-  sheetDot:      'rgba(169,113,68,0.16)',
-  margin:        '#a97144',
-  marginInk:     '#8a5a33',
+  clayTask:      '#8A9579',   // ink 4.89:1
+  clayHabit:     '#7A97A0',   // ink 4.96:1
+  clayNext:      '#E1BE6E',   // ink 8.66:1
+  clayMoved:     '#938AAC',   // ink 4.75:1
+  clayInk:       '#22261C',
   // Mauve ramp from the brand sheet's lilac, kept as light as the 3:1 floor
   // allows. The previous amber ramp topped out at 10.4:1 — far darker than the
   // DA — so the whole scale was compressed toward the light end.
@@ -108,10 +116,11 @@ const dark: ThemeTokens = {
   glowEm:        'none',
   tooltipBg:     'rgba(10,15,10,0.95)',
   tooltipBorder: 'rgba(107,155,127,0.25)',
-  sheet:         '#161a15',
-  sheetDot:      'rgba(212,165,116,0.14)',
-  margin:        '#D4A574',   // 7.9:1 on the dark sheet
-  marginInk:     '#E3BE94',
+  clayTask:      '#9FAB8C',   // ink 7.48:1
+  clayHabit:     '#8FA9B2',   // ink 7.31:1
+  clayNext:      '#E8CA84',   // ink 11.39:1
+  clayMoved:     '#ABA0C4',   // ink 7.37:1
+  clayInk:       '#141711',
   // Chosen against the dark surface, not flipped from light: intensity rises by
   // deepening the lilac, since a pale tint would flatten out at the top.
   heatFloor:     '#8BAA93',   // 6.9:1

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { EmotionId, EmotionSlot } from '../../types';
 import { addDays, formatDayKey } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { pressedStyle } from '../../utils/color';
 import { useIsWide } from '../../hooks/useMediaQuery';
 import { EMOTIONS, EMOTION_FACE } from './emotions';
 
@@ -50,7 +51,7 @@ function EmotionRing({ slotId, slotLabel, current, onPick, geom }: Readonly<{
   onPick: (slot: EmotionSlot, emotion: EmotionId) => void;
   geom: { face: number; r: number; size: number };
 }>) {
-  const { T } = useTheme();
+  const { T, dark } = useTheme();
   const [preview, setPreview] = useState<EmotionId | null>(null);
 
   const { face: FACE, r: R, size: SIZE } = geom;
@@ -86,7 +87,7 @@ function EmotionRing({ slotId, slotLabel, current, onPick, geom }: Readonly<{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0, borderRadius: 6,
                 border: `1.5px solid ${selected ? T.glassBorderEm : 'transparent'}`,
-                background: selected ? T.checkedCellBg : 'transparent',
+                ...pressedStyle(selected, T.checkedCellBg, dark),
                 cursor: 'pointer',
                 // Everything else recedes once a choice is made.
                 opacity: current && !selected ? 0.45 : 1,
