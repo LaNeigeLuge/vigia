@@ -10,8 +10,9 @@ import {
 } from '../../utils/dateUtils';
 import { getDayEntries } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
-import { pressedStyle } from '../../utils/color';
-import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useIsMobile, useIsWide } from '../../hooks/useMediaQuery';
+import { HabitTracker } from '../HabitTracker/HabitTracker';
+import { pressedStyle, shade } from '../../utils/color';
 
 interface WeeklyViewProps {
   data: AppData;
@@ -23,15 +24,22 @@ interface WeeklyViewProps {
   onAddTodo: (text: string) => void;
   onToggleTodo: (id: string) => void;
   onDeleteTodo: (id: string) => void;
+  /** Habit handlers, forwarded to the embedded grid on wide screens. */
+  onAddHabit: (name: string) => void;
+  onUpdateHabitName: (habitId: string, name: string) => void;
+  onDeleteHabit: (habitId: string) => void;
+  onToggleHabit: (habitId: string, dayKey: string) => void;
 }
 
 export function WeeklyView({
   data, currentWeekKey,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask,
   onAddTodo, onToggleTodo, onDeleteTodo,
+  onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
 }: Readonly<WeeklyViewProps>) {
   const { T, dark } = useTheme();
   const isMobile = useIsMobile();
+  const isWide = useIsWide();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
   const [selectedDayKey, setSelectedDayKey] = useState(() => formatDayKey(new Date()));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -152,6 +160,9 @@ export function WeeklyView({
         )}
       </div>
 
+      <div style={{ display: isWide ? 'flex' : 'block', alignItems: 'stretch' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+
       {isMobile ? (
         /* Phone: pick a day, then that day fills the screen. No sideways scroll. */
         <>
@@ -207,7 +218,36 @@ export function WeeklyView({
           <div>{renderDay(activeDayKey, true)}</div>
         </>
       ) : (
-        /* Scrollable day columns */
+        <>
+        {/* The week as one rolled length of clay, blue → sage, the way the logo's
+            wave becomes the mountain. Today is the sun and sits proud. It repeats
+            what the day labels already say, so it carries no load of its own. */}
+        <div style={{ display: 'flex', gap: 3, padding: '10px 0 2px' }} aria-hidden>
+          {weekDays.map((day, i) => {
+            const today = isDateToday(day);
+            const c = today ? T.clayNext : T.dayBand[i];
+            let radius = '3px';
+            if (i === 0) radius = '9999px 3px 3px 9999px';
+            else if (i === 6) radius = '3px 9999px 9999px 3px';
+            return (
+              <span
+                key={formatDayKey(day)}
+                style={{
+                  flex: 1,
+                  height: today ? 11 : 7,
+                  marginTop: today ? -2 : 0,
+                  borderRadius: today ? 9999 : radius,
+                  backgroundImage: `linear-gradient(180deg, ${shade(c, 0.26)}, ${c} 62%)`,
+                  boxShadow: dark
+                    ? '0 1px 0 rgba(255,255,255,0.16) inset, 0 3px 8px rgba(0,0,0,0.45)'
+                    : '0 1px 0 rgba(255,255,255,0.55) inset, 0 3px 7px rgba(80,64,48,0.20)',
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Scrollable day columns */}
         <div
           ref={scrollRef}
           className="weekly-scroll"
@@ -219,18 +259,58 @@ export function WeeklyView({
               <div
                 key={dayKey}
                 ref={isDateToday(day) ? todayColRef : undefined}
-                style={{ borderLeft: i > 0 ? `1px solid ${T.glassBorder}` : 'none' }}
+                // flex:1 was missing here, so DayColumn's own flex:1 applied
+                // inside a wrapper that never grew — the seven columns stopped
+                // at their intrinsic 130px and left ~875px of panel empty.
+                style={{
+                  flex: 1, minWidth: 0,
+                  borderLeft: i > 0 ? `1px solid ${T.glassBorder}` : 'none',
+                }}
               >
                 {renderDay(dayKey, false)}
               </div>
             );
           })}
         </div>
+        </>
       )}
 
-      {/* Backlog intemporel */}
       </div>
 
+      {/* The habit grid takes the rail rather than the full width under the
+          days. Its cells only read at ~46px, and a full-width row stretched
+          them into bars. 42% rather than 40: at the 1440 breakpoint the panel is
+          ~1385 wide, and 40% leaves the seven cells 46.0px with nothing to
+          spare — the first 1px of rounding overflows the rail. 42% gives ~48.
+          Losing the alignment with the day columns above is the deliberate trade. */}
+      {isWide && (
+        <div style={{ width: '42%', flexShrink: 0, borderLeft: `1px solid ${T.glassBorder}` }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '12px 14px 2px',
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
+            textTransform: 'uppercase', letterSpacing: '0.14em', color: T.textMuted,
+          }}>
+            Habitudes
+            <span style={{ flex: 1, height: 1, background: T.glassBorder }} />
+          </div>
+          <HabitTracker
+            data={data}
+            currentWeekKey={currentWeekKey}
+            embeddedWeekKey={viewWeekKey}
+            onAddHabit={onAddHabit}
+            onUpdateHabitName={onUpdateHabitName}
+            onDeleteHabit={onDeleteHabit}
+            onToggleHabit={onToggleHabit}
+          />
+        </div>
+      )}
+      </div>
+
+      </div>
+
+      {/* Undated, so it has no business on the day axis — its own panel below,
+          full width, at every size. */}
       <Backlog
         todos={data.todos}
         onAdd={onAddTodo}

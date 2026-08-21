@@ -1,6 +1,7 @@
 import type { ThemeTokens } from '../../theme';
 import { useTheme } from '../../ThemeContext';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { shade } from '../../utils/color';
 
 /**
  * The one toggle. It replaces three native checkboxes (13–14px, untextureable —
@@ -46,7 +47,7 @@ function clayStyle(checked: boolean, size: number, T: ThemeTokens, dark: boolean
   return {
     ...base,
     border: 'none',
-    backgroundImage: `linear-gradient(180deg, ${T.sage} 0%, ${T.emeraldDark} 100%)`,
+    backgroundImage: `linear-gradient(180deg, ${shade(T.sage, 0.18)} 0%, ${shade(T.emeraldDark, -0.22)} 100%)`,
     boxShadow: dark
       ? `0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.28)`
       : `0 2px 4px rgba(45,90,61,0.30), inset 0 1px 0 rgba(255,255,255,0.40)`,

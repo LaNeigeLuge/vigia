@@ -32,7 +32,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
 
   return (
     <div style={{ marginTop: 12 }}>
-      <div className="glass" style={{ }}>
+      <div className="glass">
 
         {/* Header */}
         <div style={{

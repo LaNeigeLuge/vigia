@@ -83,10 +83,12 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
   const isMobile = useIsMobile();
   const still = useReducedMotion() ?? false;
 
-  // Wide screens show Today and the summary together, so 'dashboard' has no
-  // destination of its own. Folded at render time rather than synced in an
-  // effect, so resizing never costs a second render to correct itself.
-  const activeSection: Section = isWide && section === 'dashboard' ? 'today' : section;
+  // Two folds on a wide screen: the summary rides along with Today, and the
+  // habit grid rides along with the week. Both are folded at render time rather
+  // than synced in an effect, so resizing never costs a correcting render.
+  let activeSection: Section = section;
+  if (isWide && section === 'dashboard') activeSection = 'today';
+  if (isWide && section === 'habits') activeSection = 'weekly';
 
   const {
     data, loading, error, currentWeekKey,
@@ -205,6 +207,8 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
                 onAddTask={handleAddTask} onToggleTask={toggleTask}
                 onUpdateTask={updateTaskText} onDeleteTask={handleDeleteTask}
                 onAddTodo={handleAddTodo} onToggleTodo={handleToggleTodo} onDeleteTodo={handleDeleteTodo}
+                onAddHabit={handleAddHabit} onUpdateHabitName={handleUpdateHabitName}
+                onDeleteHabit={handleDeleteHabit} onToggleHabit={handleToggleHabit}
               />
             )}
             {activeSection === 'habits' && (

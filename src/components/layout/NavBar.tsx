@@ -34,8 +34,11 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
   const { dark, toggle, T } = useTheme();
   const isWide = useIsWide();
   const isMobile = useIsMobile();
-  // Wide screens render the summary beside Today, so it has no page of its own.
-  const items = isWide ? sections.filter((s) => s.id !== 'dashboard') : sections;
+  // On a wide screen the summary rides with Today and the habit grid rides with
+  // the week, so neither has a page of its own.
+  const items = isWide
+    ? sections.filter((s) => s.id !== 'dashboard' && s.id !== 'habits')
+    : sections;
 
   const navH  = isMobile ? NAV_H.mobile  : NAV_H.pointer;
   const logoH = isMobile ? LOGO_H.mobile : LOGO_H.pointer;

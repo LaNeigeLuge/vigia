@@ -12,6 +12,23 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 
+/**
+ * A day cell is a near-square hole in the sheet: 46 wide for a 24px pellet is
+ * the density that reads at a glance. Anything wider turns the row into a set of
+ * bars, which is why the grid lives in a rail rather than across a full screen.
+ */
+const CELL_W = 46;
+const CELL_H = 38;
+
+/**
+ * The three fixed columns. In the rail they are tighter, because 46×7 for the
+ * days is not negotiable — the days are the grid, the rest is annotation.
+ */
+const COLS = {
+  page: { name: 172, week: 92, streak: 58 },
+  rail: { name: 126, week: 80, streak: 40 },
+};
+
 interface HabitTrackerProps {
   data: AppData;
   currentWeekKey: string;
@@ -19,6 +36,13 @@ interface HabitTrackerProps {
   onUpdateHabitName: (habitId: string, name: string) => void;
   onDeleteHabit: (habitId: string) => void;
   onToggleHabit: (habitId: string, dayKey: string) => void;
+  /**
+   * Set when the grid is rendered inside the week panel: it drops its own
+   * chrome, nav and week state, and follows the week the panel is showing —
+   * which is the point: composing the two at App level would leave the grid on
+   * its own week, silently disagreeing with the days beside it.
+   */
+  embeddedWeekKey?: string;
 }
 
 function NavBtn({ onClick, disabled = false, children }: Readonly<{
@@ -135,11 +159,7 @@ function HabitCard({
   const { T, dark } = useTheme();
   const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
   const streak = getHabitStreak(habit);
-
-  let streakColor = T.textMuted;
-  if (streak >= 7) streakColor = T.emerald;
-  else if (streak >= 4) streakColor = T.sage;
-  else if (streak >= 1) streakColor = T.aqua;
+  const streakColor = streak > 0 ? T.emerald : T.textMuted;
 
   return (
     <div className="glass" style={{ marginBottom: 10, overflow: 'hidden' }}>
@@ -199,7 +219,7 @@ function HabitCard({
 
 export function HabitTracker({
   data, currentWeekKey,
-  onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
+  onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit, embeddedWeekKey,
 }: Readonly<HabitTrackerProps>) {
   const { T, dark } = useTheme();
   const isMobile = useIsMobile();
@@ -209,8 +229,11 @@ export function HabitTracker({
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  const isCurrentWeek = viewWeekKey === currentWeekKey;
-  const weekStart = parseDayKey(viewWeekKey);
+  const embedded = embeddedWeekKey !== undefined;
+  const viewKey = embeddedWeekKey ?? viewWeekKey;
+
+  const isCurrentWeek = viewKey === currentWeekKey;
+  const weekStart = parseDayKey(viewKey);
   const weekDays = getWeekDays(weekStart);
 
   const navigateWeek = (dir: -1 | 1) => {
@@ -227,6 +250,7 @@ export function HabitTracker({
   };
 
   const border = `1px solid ${T.glassBorder}`;
+  const col = embedded ? COLS.rail : COLS.page;
 
   const thStyle: React.CSSProperties = {
     background: T.rowHoverBg,
@@ -238,7 +262,8 @@ export function HabitTracker({
     fontWeight: 700,
     color: T.emerald,
     letterSpacing: '0.05em',
-    minWidth: 46,
+    minWidth: CELL_W,
+    flex: 1,
   };
 
   /**
@@ -312,10 +337,12 @@ export function HabitTracker({
   );
 
   return (
-    <div style={{ padding: isMobile ? '12px' : '20px', overflowX: isMobile ? 'visible' : 'auto' }}>
-      <div style={{ minWidth: isMobile ? 0 : 620 }}>
+    <div style={embedded ? undefined : { padding: isMobile ? '12px' : '20px', overflowX: isMobile ? 'visible' : 'auto' }}>
+      {/* 620 was a floor that also acted as a ceiling: the fixed cells added up
+          to 644px and never grew. The day cells flex now. */}
+      <div style={{ minWidth: embedded || isMobile ? 0 : 620 }}>
 
-        {isMobile ? (
+        {isMobile && !embedded ? (
           <>
             <div className="glass">{weekNav(false)}</div>
             <div style={{ marginTop: 10 }}>
@@ -324,7 +351,7 @@ export function HabitTracker({
                 key={habit.id}
                 habit={habit}
                 weekDays={weekDays}
-                viewWeekKey={viewWeekKey}
+                viewWeekKey={viewKey}
                 onUpdateName={(name) => onUpdateHabitName(habit.id, name)}
                 onDelete={() => onDeleteHabit(habit.id)}
                 onToggle={(dayKey) => onToggleHabit(habit.id, dayKey)}
@@ -334,11 +361,11 @@ export function HabitTracker({
             <div className="glass" style={{ marginTop: 10 }}>{addRow}</div>
           </>
         ) : (
-        <div className="glass">
-        {weekNav(true)}
+        <div className={embedded ? undefined : 'glass'}>
+        {!embedded && weekNav(true)}
         {/* Header row */}
         <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
-          <div style={{ ...thStyle, minWidth: 172, maxWidth: 172, textAlign: 'left', paddingLeft: 10 }}>
+          <div style={{ ...thStyle, minWidth: col.name, maxWidth: col.name, textAlign: 'left', paddingLeft: 10 }}>
             Habitude
           </div>
           {weekDays.map((day) => (
@@ -349,20 +376,16 @@ export function HabitTracker({
               </div>
             </div>
           ))}
-          <div style={{ ...thStyle, minWidth: 92, maxWidth: 92 }}>Semaine</div>
-          <div style={{ ...thStyle, minWidth: 58, maxWidth: 58 }}>Série</div>
+          <div style={{ ...thStyle, minWidth: col.week, maxWidth: col.week }}>Semaine</div>
+          <div style={{ ...thStyle, minWidth: col.streak, maxWidth: col.streak }}>Série</div>
         </div>
 
         {/* Habit rows */}
         {data.habits.map((habit, idx) => {
-          const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
+          const { done, total } = getHabitWeekCompletion(habit, viewKey);
           const streak = getHabitStreak(habit);
           const rowBg = idx % 2 === 0 ? T.glassBg : T.oddRowBg;
-
-          let streakColor = T.textMuted;
-          if (streak >= 7) streakColor = T.emerald;
-          else if (streak >= 4) streakColor = T.sage;
-          else if (streak >= 1) streakColor = T.aqua;
+          const streakColor = streak > 0 ? T.emerald : T.textMuted;
 
           return (
             <motion.div
@@ -374,8 +397,8 @@ export function HabitTracker({
             >
               {/* Name */}
               <div style={{
-                minWidth: 172, maxWidth: 172,
-                borderRight: border, height: 38,
+                minWidth: col.name, maxWidth: col.name,
+                borderRight: border, height: CELL_H,
                 display: 'flex', alignItems: 'center',
               }}>
                 <HabitNameCell
@@ -393,7 +416,7 @@ export function HabitTracker({
                   <div
                     key={dayKey}
                     style={{
-                      minWidth: 46, height: 38,
+                      flex: 1, minWidth: CELL_W, height: CELL_H,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRight: border,
                       ...pressedStyle(checked, T.checkedCellBg, dark),
@@ -411,7 +434,7 @@ export function HabitTracker({
 
               {/* Progress bar */}
               <div style={{
-                minWidth: 92, maxWidth: 92,
+                minWidth: col.week, maxWidth: col.week,
                 padding: '0 10px', borderRight: border,
                 display: 'flex', alignItems: 'center',
               }}>
@@ -420,7 +443,7 @@ export function HabitTracker({
 
               {/* Streak */}
               <div style={{
-                minWidth: 58, maxWidth: 58,
+                minWidth: col.streak, maxWidth: col.streak,
                 textAlign: 'center', fontSize: 12,
                 fontWeight: 700, color: streakColor,
                 fontFamily: 'Syne, sans-serif',

@@ -38,6 +38,8 @@ export interface ThemeTokens {
    * reaches 4.44:1 on the lilac, just under the 4.5 a 15px label owes.
    */
   clayInk: string;
+  /** The week band: blue → sage across the seven days, like the logo's line. */
+  dayBand: string[];
   /* Weekly-bar heat scale. All ≥3:1 on their own theme's panel (non-text). */
   heatFloor: string;
   heatHigh: string;
@@ -77,6 +79,7 @@ const light: ThemeTokens = {
   clayNext:      '#E1BE6E',   // ink 8.66:1
   clayMoved:     '#938AAC',   // ink 4.75:1
   clayInk:       '#22261C',
+  dayBand:       ['#7A97A0', '#7E9A9B', '#829C96', '#869E91', '#8A9F8B', '#8EA184', '#93A07E'],
   // Mauve ramp from the brand sheet's lilac, kept as light as the 3:1 floor
   // allows. The previous amber ramp topped out at 10.4:1 — far darker than the
   // DA — so the whole scale was compressed toward the light end.
@@ -121,6 +124,7 @@ const dark: ThemeTokens = {
   clayNext:      '#E8CA84',   // ink 11.39:1
   clayMoved:     '#ABA0C4',   // ink 7.37:1
   clayInk:       '#141711',
+  dayBand:       ['#8FA9B2', '#93AAAE', '#97ABA8', '#9BACA2', '#9FAD9C', '#A3AE96', '#A8AF90'],
   // Chosen against the dark surface, not flipped from light: intensity rises by
   // deepening the lilac, since a pale tint would flatten out at the top.
   heatFloor:     '#8BAA93',   // 6.9:1
