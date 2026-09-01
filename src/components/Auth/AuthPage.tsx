@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '../../ThemeContext';
+import { useLang } from '../../i18n';
 
 interface AuthPageProps {
   onSignIn:  (email: string, password: string) => Promise<{ message: string } | null>;
@@ -8,6 +9,7 @@ interface AuthPageProps {
 
 export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const [mode, setMode]         = useState<'login' | 'signup'>('login');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -98,7 +100,7 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
             vigia
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+            {t(mode === 'login' ? 'auth.welcomeBack' : 'auth.createAccount')}
           </div>
         </div>
 
@@ -134,7 +136,7 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.textMuted, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -149,7 +151,7 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
 
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.textMuted, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Password
+              {t('auth.password')}
             </label>
             <input
               type="password"
@@ -180,13 +182,13 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
               transition: 'background 0.2s',
             }}
           >
-            {busy ? '…' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {busy ? '…' : t(mode === 'login' ? 'auth.signIn' : 'auth.submitCreate')}
           </button>
         </form>
 
         {/* Toggle mode */}
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: T.textMuted }}>
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          {t(mode === 'login' ? 'auth.noAccount' : 'auth.hasAccount')}
           <button
             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setInfo(''); }}
             style={{
@@ -196,7 +198,7 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
               padding: 0, fontFamily: 'DM Sans, sans-serif',
             }}
           >
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
+            {t(mode === 'login' ? 'auth.signUp' : 'auth.signIn')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Todo } from '../../types';
+import { useLang } from '../../i18n';
 import { useTheme } from '../../ThemeContext';
 import { ClayCheck } from '../ui/ClayCheck';
 
@@ -13,6 +14,7 @@ interface BacklogProps {
 
 export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const still = useReducedMotion() ?? false;
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState('');
@@ -46,7 +48,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
             fontSize: 10, textTransform: 'uppercase',
             letterSpacing: '0.12em', color: T.emerald,
           }}>
-            Backlog
+            {t('backlog.title')}
             {pending.length > 0 && (
               <span style={{
                 marginLeft: 8, background: T.emerald, color: '#fff',
@@ -65,7 +67,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
                 fontFamily: 'DM Sans, sans-serif', padding: '2px 6px',
               }}
             >
-              + Ajouter
+              {t('backlog.add')}
             </button>
           )}
         </div>
@@ -89,7 +91,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
                     if (e.key === 'Enter') commit();
                     if (e.key === 'Escape') { setAdding(false); setText(''); }
                   }}
-                  placeholder="Nouvelle tâche…"
+                  placeholder={t('backlog.placeholder')}
                   className="inline-edit"
                   style={{ fontSize: 13, color: T.textPrimary, width: '100%' }}
                 />
@@ -128,7 +130,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
             color: T.textMuted, fontSize: 12,
             fontFamily: 'DM Sans, sans-serif',
           }}>
-            Aucune tâche — clique sur "+ Ajouter"
+            {t('backlog.empty')}
           </div>
         )}
       </div>
@@ -142,6 +144,7 @@ function TodoItem({ todo, onToggle, onDelete }: Readonly<{
   onDelete: (id: string) => void;
 }>) {
   const { T } = useTheme();
+  const { t } = useLang();
 
   return (
     <div
@@ -177,8 +180,8 @@ function TodoItem({ todo, onToggle, onDelete }: Readonly<{
           cursor: 'pointer', fontSize: 16, lineHeight: 1,
           padding: '0 2px',
         }}
-        aria-label={`Supprimer ${todo.text}`}
-        title="Supprimer"
+        aria-label={t('backlog.deleteItem', { name: todo.text })}
+        title={t('common.delete')}
       >
         ×
       </button>

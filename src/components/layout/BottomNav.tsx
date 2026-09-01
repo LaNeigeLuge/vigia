@@ -1,5 +1,7 @@
 import type { Section } from '../../types';
 import { useTheme } from '../../ThemeContext';
+import { useLang } from '../../i18n';
+import type { StringKey } from '../../i18n/strings';
 
 interface BottomNavProps {
   activeSection: Section;
@@ -7,16 +9,17 @@ interface BottomNavProps {
 }
 
 // Five is the ceiling for a bottom bar — anything more goes to a More menu.
-const sections: { id: Section; label: string; icon: string }[] = [
-  { id: 'today',     label: "Aujourd'hui", icon: '•' },
-  { id: 'dashboard', label: 'Résumé',      icon: '⊞' },
-  { id: 'weekly',    label: 'Semaine',     icon: '▦' },
-  { id: 'habits',    label: 'Habitudes',   icon: '✓' },
-  { id: 'stats',     label: 'Stats',       icon: '↑' },
+const sections: { id: Section; key: StringKey; icon: string }[] = [
+  { id: 'today',     key: 'nav.today',   icon: '•' },
+  { id: 'dashboard', key: 'nav.summary', icon: '⊞' },
+  { id: 'weekly',    key: 'nav.week',    icon: '▦' },
+  { id: 'habits',    key: 'nav.habits',  icon: '✓' },
+  { id: 'stats',     key: 'nav.stats',   icon: '↑' },
 ];
 
 export function BottomNav({ activeSection, onSectionChange }: Readonly<BottomNavProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
 
   return (
     <nav
@@ -60,7 +63,7 @@ export function BottomNav({ activeSection, onSectionChange }: Readonly<BottomNav
             }}
           >
             <span style={{ fontSize: 17 }}>{s.icon}</span>
-            {s.label}
+            {t(s.key)}
           </button>
         );
       })}

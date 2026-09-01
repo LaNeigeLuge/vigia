@@ -6,7 +6,6 @@ import {
   formatDayKey,
   parseDayKey,
   isDatePast,
-  formatWeekLabel,
 } from './dateUtils';
 
 describe('getWeekStart', () => {
@@ -59,8 +58,12 @@ describe('isDatePast', () => {
   });
 });
 
-describe('formatWeekLabel', () => {
-  it('spans Monday to the following Sunday', () => {
-    expect(formatWeekLabel(parseDayKey('2026-06-29'))).toBe('Semaine du 29 juin au 5 juillet 2026');
+describe('getWeekDays', () => {
+  // The week label is composed in the language provider now, from these two
+  // ends. What matters here is that the seventh day is the following Sunday.
+  it('runs Monday to the following Sunday', () => {
+    const days = getWeekDays(parseDayKey('2026-06-29'));
+    expect(formatDayKey(days[0])).toBe('2026-06-29');
+    expect(formatDayKey(days[6])).toBe('2026-07-05');
   });
 });

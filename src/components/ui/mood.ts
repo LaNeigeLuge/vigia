@@ -20,12 +20,3 @@ export const FACE_BOX: Record<MoodValue, { x: number; y: number; w: number; h: n
   4: { x:  824, y: 36, w: 245, h: 157 },
   5: { x: 1103, y: 38, w: 219, h: 153 },
 };
-
-/** Single source of truth — MoodPicker and the Stats tooltip had drifted apart. */
-export const MOOD_LABEL: Record<MoodValue, string> = {
-  1: 'pas ouf',
-  2: 'bof',
-  3: 'normal',
-  4: 'ok',
-  5: 'super',
-};

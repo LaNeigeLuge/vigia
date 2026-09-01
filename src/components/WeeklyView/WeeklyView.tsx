@@ -4,11 +4,11 @@ import type { AppData } from '../../types';
 import { DayColumn } from './DayColumn';
 import { Backlog } from './Backlog';
 import {
-  addDays, formatWeekLabel, formatDayKey,
-  getDayLabel, getDayNumber, getMonthLabel,
+  addDays, formatDayKey, getDayNumber,
   getWeekDays, isDatePast, isDateToday, parseDayKey,
 } from '../../utils/dateUtils';
 import { getDayEntries } from '../../utils/dataUtils';
+import { useLang } from '../../i18n';
 import { useTheme } from '../../ThemeContext';
 import { useIsMobile, useIsWide } from '../../hooks/useMediaQuery';
 import { HabitTracker } from '../HabitTracker/HabitTracker';
@@ -38,6 +38,7 @@ export function WeeklyView({
   onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit,
 }: Readonly<WeeklyViewProps>) {
   const { T, dark } = useTheme();
+  const { t, d: dates } = useLang();
   const isMobile = useIsMobile();
   const isWide = useIsWide();
   const [viewWeekKey, setViewWeekKey] = useState(currentWeekKey);
@@ -46,6 +47,7 @@ export function WeeklyView({
   const todayColRef = useRef<HTMLDivElement>(null);
 
   const isCurrentWeek = viewWeekKey === currentWeekKey;
+  const isPastWeek = viewWeekKey < currentWeekKey;
   const weekStart = parseDayKey(viewWeekKey);
   const weekDays = getWeekDays(weekStart);
 
@@ -78,23 +80,23 @@ export function WeeklyView({
     });
   }, [T]);
 
+  // No clamp in either direction: a week ahead is where you lay out the work
+  // before it happens, and a week behind is where you correct what you forgot
+  // to tick. Both are the same seven editable columns.
   const navigateWeek = (dir: -1 | 1) => {
-    const next = formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7));
-    if (dir === 1 && next > currentWeekKey) return;
-    setViewWeekKey(next);
+    setViewWeekKey(formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7)));
   };
 
   const renderDay = (dayKey: string, fullWidth: boolean) => {
     const day = parseDayKey(dayKey);
     return (
       <DayColumn
-        dayLabel={getDayLabel(day)}
+        dayLabel={dates.dayLabel(day)}
         dayNumber={getDayNumber(day)}
-        monthLabel={getMonthLabel(day)}
+        monthLabel={dates.monthLabel(day)}
         dayKey={dayKey}
         isToday={isDateToday(day)}
         isPast={isDatePast(day)}
-        isReadOnly={!isCurrentWeek}
         entries={getDayEntries(data, dayKey)}
         weekKey={viewWeekKey}
         fullWidth={fullWidth}
@@ -129,7 +131,7 @@ export function WeeklyView({
             fontFamily: 'Syne, sans-serif', fontWeight: 700,
             fontSize: 14, color: T.textPrimary,
           }}>
-            {formatWeekLabel(weekStart)}
+            {dates.weekLabel(weekStart)}
           </span>
           {!isCurrentWeek && (
             <span style={{
@@ -137,12 +139,12 @@ export function WeeklyView({
               background: T.trackBg,
               padding: '3px 9px', borderRadius: 9999,
             }}>
-              Lecture seule
+              {t(isPastWeek ? 'week.past' : 'week.ahead')}
             </span>
           )}
         </div>
 
-        <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
+        <NavBtn onClick={() => navigateWeek(1)}>›</NavBtn>
 
         {!isCurrentWeek && (
           <button
@@ -155,7 +157,7 @@ export function WeeklyView({
               borderRadius: 8, fontFamily: 'DM Sans, sans-serif',
             }}
           >
-            Aujourd'hui
+            {t('common.today')}
           </button>
         )}
       </div>
@@ -182,7 +184,7 @@ export function WeeklyView({
                   key={dayKey}
                   onClick={() => setSelectedDayKey(dayKey)}
                   aria-pressed={selected}
-                  aria-label={`${getDayLabel(day)} ${getDayNumber(day)}`}
+                  aria-label={`${dates.dayLabel(day)} ${getDayNumber(day)}`}
                   style={{
                     flex: 1, minWidth: 0, minHeight: 52,
                     display: 'flex', flexDirection: 'column',
@@ -197,7 +199,7 @@ export function WeeklyView({
                     fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}>
-                    {getDayLabel(day)}
+                    {dates.dayLabel(day)}
                   </span>
                   <span style={{
                     fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 15,
@@ -291,7 +293,7 @@ export function WeeklyView({
             fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 10,
             textTransform: 'uppercase', letterSpacing: '0.14em', color: T.textMuted,
           }}>
-            Habitudes
+            {t('nav.habits')}
             <span style={{ flex: 1, height: 1, background: T.glassBorder }} />
           </div>
           <HabitTracker
@@ -321,20 +323,21 @@ export function WeeklyView({
   );
 }
 
-function NavBtn({ onClick, disabled = false, children }: Readonly<{
-  onClick: () => void; disabled?: boolean; children: React.ReactNode;
+// No disabled state left: with both directions open, an arrow is never a
+// dead end.
+function NavBtn({ onClick, children }: Readonly<{
+  onClick: () => void; children: React.ReactNode;
 }>) {
   const { T } = useTheme();
   return (
     <button
       className="tap-target"
       onClick={onClick}
-      disabled={disabled}
       style={{
-        background: disabled ? 'transparent' : T.rowHoverBg,
-        border: `1px solid ${disabled ? T.glassBorder : T.glassBorderEm}`,
-        color: disabled ? T.textMuted : T.emerald,
-        width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
+        background: T.rowHoverBg,
+        border: `1px solid ${T.glassBorderEm}`,
+        color: T.emerald,
+        width: 30, height: 30, cursor: 'pointer',
         fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 8, transition: 'all 0.18s',
       }}

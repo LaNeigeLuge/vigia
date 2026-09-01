@@ -38,6 +38,23 @@ export interface ThemeTokens {
    * reaches 4.44:1 on the lilac, just under the 4.5 a 15px label owes.
    */
   clayInk: string;
+  /**
+   * Mood's two poles, for the deviation chart: above your average vs below it.
+   * A diverging encoding, so two opposed hues — never a five-hue rainbow.
+   *
+   * Both are drawn from families the app already uses: amber, and the mauve of
+   * the heat ramp. Green was the obvious choice for "good" and is measurably
+   * wrong twice over — against amber it collapses to ΔE 5.0 under protanopia,
+   * and it already means "habit completed" everywhere else, which would blur the
+   * two series sharing this chart. Amber ↔ mauve holds at 17.2 protan / 18.6
+   * normal vision in light mode, 15.1 / 16.1 in dark.
+   *
+   * The dark amber sits above the dark lightness band (L 0.75 vs 0.67). That is
+   * the app's established amber, not something this chart introduced; a second,
+   * chart-only amber would be worse than the deviation.
+   */
+  moodLow: string;
+  moodHigh: string;
   /** The week band: blue → sage across the seven days, like the logo's line. */
   dayBand: string[];
   /* Weekly-bar heat scale. All ≥3:1 on their own theme's panel (non-text). */
@@ -79,6 +96,8 @@ const light: ThemeTokens = {
   clayNext:      '#E1BE6E',   // ink 8.66:1
   clayMoved:     '#938AAC',   // ink 4.75:1
   clayInk:       '#22261C',
+  moodLow:       '#b07d52',   // amber
+  moodHigh:      '#6E5578',   // mauve profond, cf. heatHigh
   dayBand:       ['#7A97A0', '#7E9A9B', '#829C96', '#869E91', '#8A9F8B', '#8EA184', '#93A07E'],
   // Mauve ramp from the brand sheet's lilac, kept as light as the 3:1 floor
   // allows. The previous amber ramp topped out at 10.4:1 — far darker than the
@@ -124,6 +143,8 @@ const dark: ThemeTokens = {
   clayNext:      '#E8CA84',   // ink 11.39:1
   clayMoved:     '#ABA0C4',   // ink 7.37:1
   clayInk:       '#141711',
+  moodLow:       '#D4A574',   // amber
+  moodHigh:      '#9B84A6',   // mauve, un pas plus profond que heatHigh
   dayBand:       ['#8FA9B2', '#93AAAE', '#97ABA8', '#9BACA2', '#9FAD9C', '#A3AE96', '#A8AF90'],
   // Chosen against the dark surface, not flipped from light: intensity rises by
   // deepening the lilac, since a pale tint would flatten out at the top.

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { MoodValue } from '../../types';
-import { formatDayKey, addDays, getDayLabel, getDayNumber } from '../../utils/dateUtils';
+import { formatDayKey, addDays, getDayNumber } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
 import { pressedStyle } from '../../utils/color';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { MoodFace } from '../ui/MoodFace';
-import { MOOD_LABEL } from '../ui/mood';
+import { useLang } from '../../i18n';
 
 // Happiest first, so the row reads left-to-right like the rest of the UI.
 const MOODS: MoodValue[] = [5, 4, 3, 2, 1];
@@ -19,6 +19,7 @@ interface MoodRowProps {
 }
 
 function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProps>) {
+  const { t } = useLang();
   const { T, dark } = useTheme();
   const still = useReducedMotion() ?? false;
   return (
@@ -34,7 +35,7 @@ function MoodRow({ label, dayKey, currentMood, onSetMood }: Readonly<MoodRowProp
       </div>
       <div style={{ display: 'flex', gap: 6, flex: 1 }}>
         {MOODS.map((value) => {
-          const moodLabel = MOOD_LABEL[value];
+          const moodLabel = t(`mood.${value}`);
           const isSelected = currentMood === value;
           return (
             <motion.button
@@ -85,6 +86,7 @@ interface MoodPickerProps {
 
 export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
   const { T } = useTheme();
+  const { t, d: dates } = useLang();
   const isMobile = useIsMobile();
   const [daysShown, setDaysShown] = useState(7);
   const today = new Date();
@@ -93,9 +95,9 @@ export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
     const date   = addDays(today, -i);
     const dayKey = formatDayKey(date);
     let label: string;
-    if (i === 0)      label = "Aujourd'hui";
-    else if (i === 1) label = 'Hier';
-    else              label = `${getDayLabel(date)} ${getDayNumber(date)}`;
+    if (i === 0)      label = t('common.today');
+    else if (i === 1) label = t('common.yesterday');
+    else              label = `${dates.dayLabel(date)} ${getDayNumber(date)}`;
     return { dayKey, label };
   });
 
@@ -108,7 +110,7 @@ export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
         padding: '10px 20px',
         borderBottom: `1px solid ${T.glassBorderEm}`,
       }}>
-        Mood
+        {t('dash.mood')}
       </div>
 
       {/* 210px showed 2½ rows behind an inner scrollbar, which reads as broken.

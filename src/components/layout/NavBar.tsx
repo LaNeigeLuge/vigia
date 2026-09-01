@@ -1,7 +1,9 @@
 import type { Section } from '../../types';
 import { useTheme } from '../../ThemeContext';
 import { useIsMobile, useIsWide } from '../../hooks/useMediaQuery';
-import { getDayNumber, getMonthLabel, getWeekdayLabelFr } from '../../utils/dateUtils';
+import { getDayNumber } from '../../utils/dateUtils';
+import { useLang } from '../../i18n';
+import type { StringKey } from '../../i18n/strings';
 import logoGreen from '../../assets/logo-nav.png';
 import logoCream from '../../assets/logo-nav-cream.png';
 import logoTex from '../../assets/logo-nav-tex.png';
@@ -22,16 +24,53 @@ interface NavBarProps {
   onSignOut: () => Promise<void>;
 }
 
-const sections: { id: Section; label: string }[] = [
-  { id: 'today',     label: "Aujourd'hui" },
-  { id: 'dashboard', label: 'Résumé' },
-  { id: 'weekly',    label: 'Semaine' },
-  { id: 'habits',    label: 'Habitudes' },
-  { id: 'stats',     label: 'Stats' },
+const sections: { id: Section; key: StringKey }[] = [
+  { id: 'today',     key: 'nav.today' },
+  { id: 'dashboard', key: 'nav.summary' },
+  { id: 'weekly',    key: 'nav.week' },
+  { id: 'habits',    key: 'nav.habits' },
+  { id: 'stats',     key: 'nav.stats' },
 ];
+
+/**
+ * Shows the language you would switch TO, not the one you are in — a button
+ * labelled "EN" while the UI is already English reads as a no-op. Two letters
+ * rather than a flag: flags stand for countries, and neither language has one.
+ */
+function LangBtn({ compact = false }: Readonly<{ compact?: boolean }>) {
+  const { T } = useTheme();
+  const { lang, toggle, t } = useLang();
+  const other = lang === 'en' ? 'FR' : 'EN';
+
+  return (
+    <button
+      onClick={toggle}
+      title={t('lang.switchTo')}
+      aria-label={t('lang.switchTo')}
+      className={compact ? 'tap-target' : undefined}
+      style={{
+        background: 'transparent',
+        border: compact ? 'none' : `1px solid ${T.glassBorderEm}`,
+        borderRadius: compact ? 0 : 6,
+        color: T.textMuted,
+        padding: compact ? 0 : '6px 10px',
+        cursor: 'pointer',
+        fontFamily: 'Syne, sans-serif',
+        fontWeight: 700,
+        fontSize: compact ? 12 : 11,
+        letterSpacing: '0.06em',
+        flexShrink: 0,
+        transition: 'color 0.15s, border-color 0.15s',
+      }}
+    >
+      {other}
+    </button>
+  );
+}
 
 export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }: Readonly<NavBarProps>) {
   const { dark, toggle, T } = useTheme();
+  const { t, d } = useLang();
   const isWide = useIsWide();
   const isMobile = useIsMobile();
   // On a wide screen the summary rides with Today and the habit grid rides with
@@ -74,11 +113,12 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
           color: T.textSecondary, textTransform: 'capitalize',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {getWeekdayLabelFr(today)} {getDayNumber(today)} {getMonthLabel(today)}
+          {d.weekdayLabel(today)} {getDayNumber(today)} {d.monthLabel(today)}
         </div>
+        <LangBtn compact />
         <button
           onClick={toggle}
-          aria-label={dark ? 'Passer en clair' : 'Passer en sombre'}
+          aria-label={t(dark ? 'theme.toLight' : 'theme.toDark')}
           className="tap-target"
           style={{
             background: 'none', border: 'none', color: T.emerald,
@@ -97,7 +137,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
             cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
           }}
         >
-          Sortir
+          {t('nav.signOutShort')}
         </button>
       </nav>
     );
@@ -149,7 +189,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
                 transition: 'all 0.18s ease',
               }}
             >
-              {s.label}
+              {t(s.key)}
             </button>
           );
         })}
@@ -157,10 +197,12 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
 
       {/* Right side: theme toggle + user */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <LangBtn />
+
         {/* Dark mode toggle */}
         <button
           onClick={toggle}
-          title={dark ? 'Passer en clair' : 'Passer en sombre'}
+          title={t(dark ? 'theme.toLight' : 'theme.toDark')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -182,7 +224,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
           }}
         >
           <span style={{ fontSize: 14 }}>{dark ? '☀' : '☽'}</span>
-          {dark ? 'Clair' : 'Sombre'}
+          {t(dark ? 'theme.light' : 'theme.dark')}
         </button>
 
         {/* User email */}
@@ -201,7 +243,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
         {/* Logout */}
         <button
           onClick={onSignOut}
-          title="Se déconnecter"
+          title={t('nav.signOut')}
           style={{
             padding: '6px 12px',
             borderRadius: 6,
@@ -216,7 +258,7 @@ export function NavBar({ activeSection, onSectionChange, userEmail, onSignOut }:
             transition: 'all 0.15s ease',
           }}
         >
-          Se déconnecter
+          {t('nav.signOut')}
         </button>
       </div>
     </nav>

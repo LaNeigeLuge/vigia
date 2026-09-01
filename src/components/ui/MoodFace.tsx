@@ -1,6 +1,7 @@
 import facesUrl from '../../assets/faces.svg';
 import type { MoodValue } from '../../types';
-import { FACE_BOX, FACE_STRIP, MOOD_LABEL } from './mood';
+import { FACE_BOX, FACE_STRIP } from './mood';
+import { useLang } from '../../i18n';
 
 /**
  * One of the five mood faces, windowed out of the shared strip.
@@ -17,6 +18,7 @@ export function MoodFace({ mood, size = 24, labelled = false }: Readonly<{
   size?: number;
   labelled?: boolean;
 }>) {
+  const { t } = useLang();
   const box = FACE_BOX[mood];
   // Fit the longest side, then centre the shorter one in the square box.
   const k = size / Math.max(box.w, box.h);
@@ -24,7 +26,7 @@ export function MoodFace({ mood, size = 24, labelled = false }: Readonly<{
   return (
     <span
       role={labelled ? 'img' : undefined}
-      aria-label={labelled ? MOOD_LABEL[mood] : undefined}
+      aria-label={labelled ? t(`mood.${mood}`) : undefined}
       aria-hidden={labelled ? undefined : true}
       style={{
         display: 'inline-block',

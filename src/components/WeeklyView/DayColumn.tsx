@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { DonutChart } from '../ui/DonutChart';
 import { TaskRow } from './TaskRow';
+import { useLang } from '../../i18n';
 import { useTheme } from '../../ThemeContext';
 import type { DayEntry } from '../../utils/dataUtils';
 
@@ -11,7 +12,6 @@ interface DayColumnProps {
   dayKey: string;
   isToday: boolean;
   isPast: boolean;
-  isReadOnly: boolean;
   entries: DayEntry[];
   weekKey: string;
   /** Phone: one day fills the screen instead of being a 130px column. */
@@ -25,10 +25,11 @@ interface DayColumnProps {
 
 export function DayColumn({
   dayLabel, dayNumber, monthLabel, dayKey,
-  isToday, isPast, isReadOnly, entries, weekKey, fullWidth = false,
+  isToday, isPast, entries, weekKey, fullWidth = false,
   onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onConfetti,
 }: Readonly<DayColumnProps>) {
   const { dark, T } = useTheme();
+  const { t } = useLang();
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -105,7 +106,6 @@ export function DayColumn({
           <TaskRow
             key={`${task.id}-${migratedAway ? 'from' : 'on'}`}
             task={task}
-            isReadOnly={isReadOnly}
             migratedAway={migratedAway}
             onToggle={() => onToggleTask(task.id)}
             onUpdateText={(text) => onUpdateTask(task.id, text)}
@@ -114,8 +114,7 @@ export function DayColumn({
         ))}
 
         {/* Add task */}
-        {!isReadOnly && (
-          <div style={{ borderBottom: `1px solid ${T.rowBorder}` }}>
+        <div style={{ borderBottom: `1px solid ${T.rowBorder}` }}>
             {addingTask ? (
               <div style={{ padding: '4px 8px' }}>
                 <input
@@ -128,7 +127,7 @@ export function DayColumn({
                     if (e.key === 'Escape') { setAddingTask(false); setNewTaskText(''); }
                   }}
                   autoFocus
-                  placeholder="Nom de la tâche…"
+                  placeholder={t('week.taskPlaceholder')}
                   className="inline-edit"
                   style={{ fontSize: 12, color: T.textPrimary }}
                 />
@@ -146,11 +145,10 @@ export function DayColumn({
                   transition: 'opacity 0.15s',
                 }}
               >
-                + Ajouter une tâche
+                {t('week.addTask')}
               </button>
             )}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

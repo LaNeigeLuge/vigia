@@ -104,12 +104,14 @@ export function getDayCompletionRate(data: AppData, weekKey: string, dayKey: str
 /** Stable key for colour/icon lookups — the label is display text and moves. */
 export type DayLevelTier = 'none' | 'slow' | 'mid' | 'fire' | 'beast';
 
-export function getDayLevel(pct: number): { label: string; tier: DayLevelTier } {
-  if (pct <= 0)  return { label: 'Rien',       tier: 'none'  };
-  if (pct <= 25) return { label: 'Démarrage',  tier: 'slow'  };
-  if (pct <= 50) return { label: 'En route',   tier: 'mid'   };
-  if (pct <= 75) return { label: 'Ça chauffe', tier: 'fire'  };
-  return           { label: 'À fond',          tier: 'beast' };
+/** The tier only — its name is `level.<tier>` in the dictionary. Returning a
+ *  French label here is what let the colour map key off translated text once. */
+export function getDayLevel(pct: number): DayLevelTier {
+  if (pct <= 0)  return 'none';
+  if (pct <= 25) return 'slow';
+  if (pct <= 50) return 'mid';
+  if (pct <= 75) return 'fire';
+  return 'beast';
 }
 
 export function getHabitStreak(habit: Habit, asOf: Date = new Date()): number {

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { addDays, formatDayKey, parseDayKey } from '../../utils/dateUtils';
 import type { Habit, MoodValue } from '../../types';
 import { useTheme } from '../../ThemeContext';
+import { useLang } from '../../i18n';
 
 interface HabitHeatmapProps {
   habits: Habit[];
@@ -24,6 +25,7 @@ const MOOD_COLORS: Record<MoodValue, string> = {
 
 export function HabitHeatmap({ habits, currentWeekKey, moods }: Readonly<HabitHeatmapProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const [tooltip, setTooltip] = useState<{ habitName: string; dayKey: string; done: boolean } | null>(null);
 
   const weeks = useMemo(() => {
@@ -60,7 +62,7 @@ export function HabitHeatmap({ habits, currentWeekKey, moods }: Readonly<HabitHe
   if (habits.length === 0) {
     return (
       <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-        No habits tracked yet.
+        {t('stats.noHabits')}
       </div>
     );
   }

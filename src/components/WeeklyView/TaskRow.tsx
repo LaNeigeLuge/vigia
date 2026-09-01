@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import type { Task } from '../../types';
+import { useLang } from '../../i18n';
 import { useTheme } from '../../ThemeContext';
 import { ClayCheck } from '../ui/ClayCheck';
 
 interface TaskRowProps {
   task: Task;
-  isReadOnly: boolean;
   /** Rendered as the bullet-journal `>` trace on the day the task left. */
   migratedAway?: boolean;
   onToggle: () => void;
@@ -13,22 +13,22 @@ interface TaskRowProps {
   onDelete: () => void;
 }
 
-export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUpdateText, onDelete }: Readonly<TaskRowProps>) {
+export function TaskRow({ task, migratedAway = false, onToggle, onUpdateText, onDelete }: Readonly<TaskRowProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [checkAnim, setCheckAnim] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggle = () => {
-    if (isReadOnly) return;
     setCheckAnim(true);
     setTimeout(() => setCheckAnim(false), 300);
     onToggle();
   };
 
   const handleTextClick = () => {
-    if (isReadOnly || task.completed || migratedAway) return;
+    if (task.completed || migratedAway) return;
     setIsEditing(true);
     setEditText(task.text);
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -56,7 +56,7 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
     >
       {migratedAway ? (
         <span
-          title="Migrée vers un autre jour"
+          title={t('week.movedElsewhere')}
           style={{
             width: 13, flexShrink: 0, marginTop: 1, textAlign: 'center',
             fontFamily: 'Syne, sans-serif', fontWeight: 700,
@@ -70,7 +70,6 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
           <ClayCheck
             checked={task.completed}
             onChange={handleToggle}
-            disabled={isReadOnly}
             label={task.text}
           />
         </span>
@@ -102,7 +101,7 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
             color: task.completed || migratedAway ? T.textMuted : T.textSecondary,
             textDecoration: task.completed || migratedAway ? 'line-through' : 'none',
             opacity: task.completed || migratedAway ? 0.5 : 1,
-            cursor: isReadOnly || task.completed || migratedAway ? 'default' : 'text',
+            cursor: task.completed || migratedAway ? 'default' : 'text',
             wordBreak: 'break-word',
             transition: 'all 0.25s',
             fontFamily: 'DM Sans, sans-serif',
@@ -112,7 +111,7 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
         </button>
       )}
 
-      {!isReadOnly && !isEditing && !migratedAway && (
+      {!isEditing && !migratedAway && (
         <button
           className="row-action"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -122,8 +121,8 @@ export function TaskRow({ task, isReadOnly, migratedAway = false, onToggle, onUp
             fontSize: 14, padding: '0 2px', lineHeight: 1,
             transition: 'color 0.15s',
           }}
-          aria-label={`Supprimer la tâche ${task.text}`}
-          title="Supprimer"
+          aria-label={t('week.deleteTask', { name: task.text })}
+          title={t('common.delete')}
         >
           ×
         </button>

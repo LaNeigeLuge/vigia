@@ -91,19 +91,19 @@ describe('getWeekCompletionRate', () => {
 });
 
 describe('getDayLevel', () => {
-  // Assert the tier, not the label: the tier keys the colour and icon lookups,
-  // the label is display text that moves with the UI language.
+  // The tier is all it returns now: it keys the colour and icon lookups, while
+  // the display name lives in the dictionary under `level.<tier>`.
   it('maps percentages to tiers, boundaries inclusive', () => {
-    expect(getDayLevel(0).tier).toBe('none');
-    expect(getDayLevel(25).tier).toBe('slow');
-    expect(getDayLevel(50).tier).toBe('mid');
-    expect(getDayLevel(75).tier).toBe('fire');
-    expect(getDayLevel(100).tier).toBe('beast');
+    expect(getDayLevel(0)).toBe('none');
+    expect(getDayLevel(25)).toBe('slow');
+    expect(getDayLevel(50)).toBe('mid');
+    expect(getDayLevel(75)).toBe('fire');
+    expect(getDayLevel(100)).toBe('beast');
   });
 
   it('puts values just over a boundary in the next tier', () => {
-    expect(getDayLevel(26).tier).toBe('mid');
-    expect(getDayLevel(76).tier).toBe('beast');
+    expect(getDayLevel(26)).toBe('mid');
+    expect(getDayLevel(76)).toBe('beast');
   });
 });
 

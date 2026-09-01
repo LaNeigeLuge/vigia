@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { AppData, Task } from '../../types';
+import { useLang } from '../../i18n';
 import { useTheme } from '../../ThemeContext';
 import {
   addDays, formatDayKey, getDayNumber, getISOWeekNumber,
-  getMonthYearLabelFr, getWeekdayLabelFr, getWeekStartKey,
+  getWeekStartKey,
 } from '../../utils/dateUtils';
 import { getDayEntries, getHabitStreak } from '../../utils/dataUtils';
 import { shade } from '../../utils/color';
@@ -63,6 +64,7 @@ function Strip({
   children?: React.ReactNode;
 }>) {
   const { T, dark } = useTheme();
+  const { t } = useLang();
 
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
@@ -70,7 +72,7 @@ function Strip({
         onClick={onToggle}
         disabled={!onToggle}
         aria-pressed={onToggle ? done : undefined}
-        aria-label={onToggle ? `${label} — marquer comme fait` : `${label} — migrée`}
+        aria-label={t(onToggle ? 'today.markDone' : 'today.moved', { name: label })}
         style={{
           flex: 1, minWidth: 0, minHeight: 48,
           display: 'flex', alignItems: 'center', gap: 11,
@@ -107,11 +109,12 @@ function MoreBtn({ open, onClick, label }: Readonly<{
   open: boolean; onClick: () => void; label: string;
 }>) {
   const { T } = useTheme();
+  const { t } = useLang();
   return (
     <button
       onClick={onClick}
       aria-expanded={open}
-      aria-label={`Actions pour ${label}`}
+      aria-label={t('today.actions', { name: label })}
       style={{
         position: 'absolute', right: 4, top: 0, bottom: 0,
         width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -157,6 +160,7 @@ function LogStrip({
   onMigrate: (toDayKey: string | null) => void;
 }>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const still = useReducedMotion() ?? false;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -242,7 +246,7 @@ function LogStrip({
                   }}>
                     ✎ Modifier
                   </ActionBtn>
-                  <ActionBtn onClick={onDelete} danger>× Supprimer</ActionBtn>
+                  <ActionBtn onClick={onDelete} danger>{t('today.delete')}</ActionBtn>
                 </>
               )}
             </div>
@@ -259,6 +263,7 @@ export function Today({
   data, onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMigrateTask, onToggleHabit,
 }: Readonly<TodayProps>) {
   const { T } = useTheme();
+  const { t, d: dates } = useLang();
   const [adding, setAdding] = useState(false);
   const [newText, setNewText] = useState('');
   const addRef = useRef<HTMLInputElement>(null);
@@ -297,7 +302,7 @@ export function Today({
           fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11,
           textTransform: 'uppercase', letterSpacing: '0.18em', color: T.textMuted,
         }}>
-          {getWeekdayLabelFr(today)}
+          {dates.weekdayLabel(today)}
         </div>
         <div style={{
           fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 76,
@@ -314,8 +319,8 @@ export function Today({
           textTransform: 'uppercase', letterSpacing: '0.14em', color: T.textMuted,
           fontVariantNumeric: 'tabular-nums',
         }}>
-          {getMonthYearLabelFr(today)} · s{getISOWeekNumber(today)}
-          {streak > 0 && ` · série ${streak}j`}
+          {dates.monthYearLabel(today)} · s{getISOWeekNumber(today)}
+          {streak > 0 && ` ${t('today.streak', { n: streak })}`}
         </div>
       </header>
 
@@ -365,7 +370,7 @@ export function Today({
                 if (e.key === 'Escape') { setAdding(false); setNewText(''); }
               }}
               autoFocus
-              placeholder="Écrire une entrée…"
+              placeholder={t('today.placeholder')}
               className="inline-edit"
               style={{ fontSize: 15, color: T.textPrimary }}
             />
@@ -382,7 +387,7 @@ export function Today({
               fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 600,
             }}
           >
-            + Ajouter une entrée
+            {t('today.add')}
           </button>
         )}
 
@@ -391,7 +396,7 @@ export function Today({
             padding: '18px 4px', fontFamily: 'DM Sans, sans-serif',
             fontSize: 14, color: T.textMuted,
           }}>
-            Rien d'écrit aujourd'hui.
+            {t('today.empty')}
           </div>
         )}
       </div>

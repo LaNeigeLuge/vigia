@@ -5,6 +5,7 @@ import { useAppData } from './hooks/useAppData';
 import { useIsMobile, useIsWide } from './hooks/useMediaQuery';
 import { useAuth } from './hooks/useAuth';
 import { ThemeProvider, useTheme } from './ThemeContext';
+import { LangProvider, useLang } from './i18n';
 import { NavBar } from './components/layout/NavBar';
 import { BottomNav } from './components/layout/BottomNav';
 import { AuthPage } from './components/Auth/AuthPage';
@@ -49,6 +50,7 @@ function AmbientBlob({ color, top, left, size = 480, opacity = 0.1 }: Readonly<{
 
 function LoadingScreen() {
   const { T } = useTheme();
+  const { t } = useLang();
   return (
     <div style={{
       minHeight: '100dvh', background: T.bg,
@@ -62,7 +64,7 @@ function LoadingScreen() {
         style={{ width: 240, maxWidth: '70vw', height: 'auto' }}
       />
       <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>
-        Chargement…
+        {t('app.loading')}
       </div>
     </div>
   );
@@ -79,6 +81,7 @@ interface AppInnerProps {
 function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
   const [section, setSection] = useState<Section>('today');
   const { dark, T } = useTheme();
+  const { t } = useLang();
   const isWide = useIsWide();
   const isMobile = useIsMobile();
   const still = useReducedMotion() ?? false;
@@ -141,7 +144,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
               className="logo-breathe"
               style={{ width: 210, maxWidth: '65vw', height: 'auto', marginBottom: 14 }}
             />
-            <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>Chargement de tes données…</div>
+            <div style={{ fontSize: 13, color: T.textMuted, fontFamily: 'DM Sans, sans-serif' }}>{t('app.loadingData')}</div>
           </div>
         </div>
       )}
@@ -264,7 +267,9 @@ function AuthGate() {
 function App() {
   return (
     <ThemeProvider>
-      <AuthGate />
+      <LangProvider>
+        <AuthGate />
+      </LangProvider>
     </ThemeProvider>
   );
 }

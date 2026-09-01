@@ -4,10 +4,11 @@ import type { AppData, Habit } from '../../types';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Flame } from '../ui/Flame';
 import { ClayCheck, ClayDot } from '../ui/ClayCheck';
-import { addDays, formatDayKey, formatWeekLabel, getDayLabel, getWeekDays, parseDayKey } from '../../utils/dateUtils';
+import { addDays, formatDayKey, getWeekDays, parseDayKey } from '../../utils/dateUtils';
 import { getHabitStreak, getHabitWeekCompletion } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
 import { pressedStyle } from '../../utils/color';
+import { useLang } from '../../i18n';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const ease = [0.4, 0, 0.2, 1] as const;
@@ -45,20 +46,21 @@ interface HabitTrackerProps {
   embeddedWeekKey?: string;
 }
 
-function NavBtn({ onClick, disabled = false, children }: Readonly<{
-  onClick: () => void; disabled?: boolean; children: React.ReactNode;
+// No disabled state left: with both directions open, an arrow is never a
+// dead end.
+function NavBtn({ onClick, children }: Readonly<{
+  onClick: () => void; children: React.ReactNode;
 }>) {
   const { T } = useTheme();
   return (
     <button
       className="tap-target"
       onClick={onClick}
-      disabled={disabled}
       style={{
-        background: disabled ? 'transparent' : T.rowHoverBg,
-        border: `1px solid ${disabled ? T.glassBorder : T.glassBorderEm}`,
-        color: disabled ? T.textMuted : T.emerald,
-        width: 30, height: 30, cursor: disabled ? 'default' : 'pointer',
+        background: T.rowHoverBg,
+        border: `1px solid ${T.glassBorderEm}`,
+        color: T.emerald,
+        width: 30, height: 30, cursor: 'pointer',
         fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 8, transition: 'all 0.18s',
       }}
@@ -76,6 +78,7 @@ function HabitNameCell({ habit, onUpdate, onDelete, fill = false }: Readonly<{
   fill?: boolean;
 }>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(habit.name);
 
@@ -121,7 +124,7 @@ function HabitNameCell({ habit, onUpdate, onDelete, fill = false }: Readonly<{
             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             padding: 0, fontFamily: 'DM Sans, sans-serif',
           }}
-          title="Renommer"
+          title={t('common.rename')}
         >
           {habit.name}
         </button>
@@ -135,8 +138,8 @@ function HabitNameCell({ habit, onUpdate, onDelete, fill = false }: Readonly<{
             cursor: 'pointer', fontSize: 14, lineHeight: 1,
             padding: '0 2px', transition: 'color 0.15s',
           }}
-          aria-label={`Supprimer l'habitude ${habit.name}`}
-          title="Supprimer"
+          aria-label={t('habits.deleteHabit', { name: habit.name })}
+          title={t('common.delete')}
         >
           ×
         </button>
@@ -157,6 +160,7 @@ function HabitCard({
   onToggle: (dayKey: string) => void;
 }>) {
   const { T, dark } = useTheme();
+  const { d: dates } = useLang();
   const { done, total } = getHabitWeekCompletion(habit, viewWeekKey);
   const streak = getHabitStreak(habit);
   const streakColor = streak > 0 ? T.emerald : T.textMuted;
@@ -186,7 +190,7 @@ function HabitCard({
               key={dayKey}
               onClick={() => onToggle(dayKey)}
               aria-pressed={checked}
-              aria-label={`${habit.name} — ${getDayLabel(day)} ${formatDayKey(day).slice(8)}`}
+              aria-label={`${habit.name} — ${dates.dayLabel(day)} ${formatDayKey(day).slice(8)}`}
               style={{
                 flex: 1, minWidth: 0, minHeight: 44,
                 display: 'flex', flexDirection: 'column',
@@ -201,7 +205,7 @@ function HabitCard({
                 fontFamily: 'Syne, sans-serif', fontWeight: 700,
                 textTransform: 'uppercase',
               }}>
-                {getDayLabel(day)}
+                {dates.dayLabel(day)}
               </span>
               {/* Shape, not colour alone — a raised pellet vs an empty well. */}
               <ClayDot checked={checked} size={22} />
@@ -222,6 +226,7 @@ export function HabitTracker({
   onAddHabit, onUpdateHabitName, onDeleteHabit, onToggleHabit, embeddedWeekKey,
 }: Readonly<HabitTrackerProps>) {
   const { T, dark } = useTheme();
+  const { t, d: dates } = useLang();
   const isMobile = useIsMobile();
   const still = useReducedMotion() ?? false;
   const [addingHabit, setAddingHabit] = useState(false);
@@ -236,10 +241,11 @@ export function HabitTracker({
   const weekStart = parseDayKey(viewKey);
   const weekDays = getWeekDays(weekStart);
 
+  // Unclamped, like the week panel it sits beside: blocking the grid from
+  // following the week shown above it would be the odd behaviour, not the safe
+  // one. Streaks walk backwards from today, so a future tick cannot inflate one.
   const navigateWeek = (dir: -1 | 1) => {
-    const next = formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7));
-    if (dir === 1 && next > currentWeekKey) return;
-    setViewWeekKey(next);
+    setViewWeekKey(formatDayKey(addDays(parseDayKey(viewWeekKey), dir * 7)));
   };
 
   const commitAdd = () => {
@@ -279,10 +285,10 @@ export function HabitTracker({
       <NavBtn onClick={() => navigateWeek(-1)}>‹</NavBtn>
       <div style={{ flex: 1, textAlign: 'center' }}>
         <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: T.textPrimary }}>
-          {formatWeekLabel(weekStart)}
+          {dates.weekLabel(weekStart)}
         </span>
       </div>
-      <NavBtn onClick={() => navigateWeek(1)} disabled={isCurrentWeek}>›</NavBtn>
+      <NavBtn onClick={() => navigateWeek(1)}>›</NavBtn>
       {!isCurrentWeek && (
         <button
           onClick={() => setViewWeekKey(currentWeekKey)}
@@ -292,7 +298,7 @@ export function HabitTracker({
             fontSize: 11, fontWeight: 600, borderRadius: 8, fontFamily: 'DM Sans, sans-serif',
           }}
         >
-          Aujourd'hui
+          {t('common.today')}
         </button>
       )}
     </div>
@@ -330,7 +336,7 @@ export function HabitTracker({
             fontFamily: 'DM Sans, sans-serif',
           }}
         >
-          + Ajouter une habitude
+          {t('habits.add')}
         </button>
       )}
     </>
@@ -366,18 +372,18 @@ export function HabitTracker({
         {/* Header row */}
         <div style={{ display: 'flex', borderBottom: `2px solid ${T.glassBorderEm}` }}>
           <div style={{ ...thStyle, minWidth: col.name, maxWidth: col.name, textAlign: 'left', paddingLeft: 10 }}>
-            Habitude
+            {t('habits.habit')}
           </div>
           {weekDays.map((day) => (
             <div key={formatDayKey(day)} style={thStyle}>
-              <div>{getDayLabel(day)}</div>
+              <div>{dates.dayLabel(day)}</div>
               <div style={{ fontSize: 9, fontWeight: 400, color: T.textMuted }}>
                 {formatDayKey(day).slice(8)}
               </div>
             </div>
           ))}
-          <div style={{ ...thStyle, minWidth: col.week, maxWidth: col.week }}>Semaine</div>
-          <div style={{ ...thStyle, minWidth: col.streak, maxWidth: col.streak }}>Série</div>
+          <div style={{ ...thStyle, minWidth: col.week, maxWidth: col.week }}>{t('habits.week')}</div>
+          <div style={{ ...thStyle, minWidth: col.streak, maxWidth: col.streak }}>{t('habits.streak')}</div>
         </div>
 
         {/* Habit rows */}
@@ -426,7 +432,7 @@ export function HabitTracker({
                     <ClayCheck
                       checked={checked}
                       onChange={() => onToggleHabit(habit.id, dayKey)}
-                      label={`${habit.name} — ${getDayLabel(day)} ${dayKey.slice(8)}`}
+                      label={`${habit.name} — ${dates.dayLabel(day)} ${dayKey.slice(8)}`}
                     />
                   </div>
                 );

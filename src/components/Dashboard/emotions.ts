@@ -1,25 +1,27 @@
 import type { EmotionId } from '../../types';
 
-export interface Emotion { id: EmotionId; label: string; color: string }
+/** Id and colour only. The name is looked up as `emotion.<id>`, so the id —
+ *  which is what the database stores — stays the only name this module knows. */
+export interface Emotion { id: EmotionId; color: string }
 
 /** Ordered for a smooth progressive colour wheel — do not sort. */
 export const EMOTIONS: Emotion[] = [
-  { id: 'heureux',    label: 'Heureux',      color: 'hsl(112, 42%, 73%)' },
-  { id: 'energise',   label: 'Énergisé',     color: 'hsl(90,  44%, 73%)' },
-  { id: 'blase',      label: 'Blasé',        color: 'hsl(70,  36%, 74%)' },
-  { id: 'bien',       label: 'Bien',         color: 'hsl(50,  36%, 76%)' },
-  { id: 'embarrasse', label: 'Embarrassé',   color: 'hsl(34,  48%, 74%)' },
-  { id: 'malaaise',   label: "Mal à l'aise", color: 'hsl(18,  48%, 73%)' },
-  { id: 'tendu',      label: 'Tendu',        color: 'hsl(5,   48%, 72%)' },
-  { id: 'en-colere',  label: 'En colère',    color: 'hsl(350, 48%, 71%)' },
-  { id: 'apeure',     label: 'Apeuré',       color: 'hsl(335, 42%, 73%)' },
-  { id: 'enjoleur',   label: 'Enjôleur',     color: 'hsl(315, 44%, 76%)' },
-  { id: 'joueur',     label: 'Joueur',       color: 'hsl(292, 40%, 76%)' },
-  { id: 'hebete',     label: 'Hébété',       color: 'hsl(272, 38%, 76%)' },
-  { id: 'concentre',  label: 'Concentré',    color: 'hsl(252, 42%, 75%)' },
-  { id: 'triste',     label: 'Triste',       color: 'hsl(228, 44%, 73%)' },
-  { id: 'confiant',   label: 'Confiant',     color: 'hsl(208, 48%, 73%)' },
-  { id: 'inspire',    label: 'Inspiré',      color: 'hsl(183, 44%, 73%)' },
+  { id: 'heureux', color: 'hsl(112, 42%, 73%)' },
+  { id: 'energise', color: 'hsl(90,  44%, 73%)' },
+  { id: 'blase', color: 'hsl(70,  36%, 74%)' },
+  { id: 'bien', color: 'hsl(50,  36%, 76%)' },
+  { id: 'embarrasse', color: 'hsl(34,  48%, 74%)' },
+  { id: 'malaaise', color: 'hsl(18,  48%, 73%)' },
+  { id: 'tendu', color: 'hsl(5,   48%, 72%)' },
+  { id: 'en-colere', color: 'hsl(350, 48%, 71%)' },
+  { id: 'apeure', color: 'hsl(335, 42%, 73%)' },
+  { id: 'enjoleur', color: 'hsl(315, 44%, 76%)' },
+  { id: 'joueur', color: 'hsl(292, 40%, 76%)' },
+  { id: 'hebete', color: 'hsl(272, 38%, 76%)' },
+  { id: 'concentre', color: 'hsl(252, 42%, 75%)' },
+  { id: 'triste', color: 'hsl(228, 44%, 73%)' },
+  { id: 'confiant', color: 'hsl(208, 48%, 73%)' },
+  { id: 'inspire', color: 'hsl(183, 44%, 73%)' },
 ];
 
 /**

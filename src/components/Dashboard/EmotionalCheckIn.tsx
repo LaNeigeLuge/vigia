@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { EmotionId, EmotionSlot } from '../../types';
 import { addDays, formatDayKey } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
+import { useLang } from '../../i18n';
 import { pressedStyle } from '../../utils/color';
 import { useIsWide } from '../../hooks/useMediaQuery';
 import { EMOTIONS, EMOTION_FACE } from './emotions';
@@ -9,11 +10,8 @@ import { EMOTIONS, EMOTION_FACE } from './emotions';
 /** Faces are drawn on a 300×215 canvas. */
 const FACE_RATIO = 215 / 300;
 
-const SLOTS: { id: EmotionSlot; label: string }[] = [
-  { id: 'matin',     label: 'Matin' },
-  { id: 'apresmidi', label: 'Après-midi' },
-  { id: 'soir',      label: 'Soir' },
-];
+/** The ids are database values; their names come from `slot.<id>`. */
+const SLOTS: EmotionSlot[] = ['matin', 'apresmidi', 'soir'];
 
 /**
  * Ring geometry, derived rather than hardcoded: 16 faces of `face` px only clear
@@ -53,10 +51,11 @@ function EmotionRing({ slotId, slotLabel, current, onPick, geom }: Readonly<{
 }>) {
   const { T, dark } = useTheme();
   const [preview, setPreview] = useState<EmotionId | null>(null);
+  const { t } = useLang();
 
   const { face: FACE, r: R, size: SIZE } = geom;
   const shown = preview ?? current;
-  const shownLabel = EMOTIONS.find((e) => e.id === shown)?.label;
+  const shownLabel = shown ? t(`emotion.${shown}`) : undefined;
   const c = SIZE / 2;
 
   return (
@@ -78,7 +77,7 @@ function EmotionRing({ slotId, slotLabel, current, onPick, geom }: Readonly<{
               onFocus={() => setPreview(e.id)}
               onBlur={() => setPreview(null)}
               aria-pressed={selected}
-              aria-label={e.label}
+              aria-label={t(`emotion.${e.id}`)}
               style={{
                 position: 'absolute',
                 left: c + R * Math.cos(rad) - FACE / 2,
@@ -149,6 +148,7 @@ interface EmotionalCheckInProps {
 
 export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalCheckInProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const wide = useIsWide();
   const [dayOffset, setDayOffset] = useState<0 | 1>(0);
 
@@ -168,7 +168,7 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
           fontSize: 10, textTransform: 'uppercase',
           letterSpacing: '0.12em', color: T.emerald,
         }}>
-          Check-in émotionnel
+          {t('checkin.title')}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {([0, 1] as const).map((offset) => {
@@ -189,7 +189,7 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
                   boxShadow: active ? '0 2px 6px rgba(45,90,61,0.30), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
                 }}
               >
-                {offset === 0 ? "Aujourd'hui" : 'Hier'}
+                {t(offset === 0 ? 'common.today' : 'common.yesterday')}
               </button>
             );
           })}
@@ -207,10 +207,10 @@ export function EmotionalCheckIn({ checkins, onSetCheckin }: Readonly<EmotionalC
       }}>
         {SLOTS.map((slot) => (
           <EmotionRing
-            key={`${slot.id}-${dayKey}`}
-            slotId={slot.id}
-            slotLabel={slot.label}
-            current={dayData[slot.id]}
+            key={`${slot}-${dayKey}`}
+            slotId={slot}
+            slotLabel={t(`slot.${slot}`)}
+            current={dayData[slot]}
             onPick={(s, emotion) => onSetCheckin(dayKey, s, emotion)}
             geom={wide ? POINTER_RING : TOUCH_RING}
           />

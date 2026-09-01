@@ -7,17 +7,11 @@ import {
 import { heatColor } from './heatColor';
 import { shade, defId } from '../../utils/color';
 import { centeredAvg } from './smooth';
-import { MoodFace } from '../ui/MoodFace';
-import { MOOD_LABEL } from '../ui/mood';
+import { useLang } from '../../i18n';
 import type { AppData, Habit, MoodValue } from '../../types';
 import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
-
-/**
- * 3 days, not 7: a week-wide window flattens a two-day episode, and this chart
- * is read to spot short marking periods, not long-run trend.
- */
-const SMOOTH_WINDOW = 3;
+import type { ThemeTokens } from '../../theme';
 
 /** Gradient ids derive from the colour, so bars of one tier share a single def. */
 const gradId = (c: string) => defId('clay', c);
@@ -86,6 +80,7 @@ interface ScoreChartProps { data: AppData }
 
 export function HabitScoreChart({ data }: Readonly<ScoreChartProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const points = useChartData(data);
 
   if (points.length === 0) {
@@ -125,8 +120,8 @@ export function HabitScoreChart({ data }: Readonly<ScoreChartProps>) {
               return (
                 <TooltipBox>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                  <div>Jour : <b>{pct}%</b></div>
-                  <div>Moy. 7j : <b>{rolling}%</b></div>
+                  <div>{t('chart.day')} <b>{pct}%</b></div>
+                  <div>{t('chart.avg7d')} <b>{rolling}%</b></div>
                 </TooltipBox>
               );
             }}
@@ -144,148 +139,8 @@ export function HabitScoreChart({ data }: Readonly<ScoreChartProps>) {
         </ComposedChart>
       </ResponsiveContainer>
       <Legend items={[
-        { color: T.emerald, opacity: 0.5, label: '% du jour' },
-        { color: T.emerald, opacity: 1,   label: 'moyenne 7j' },
-      ]} />
-    </div>
-  );
-}
-
-// ─── Chart 2: habit % vs mood ─────────────────────────────────────────────────
-
-interface MoodChartProps { data: AppData }
-
-export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
-  const { T } = useTheme();
-  const points = useChartData(data);
-  const [smooth, setSmooth] = useState(false);
-
-  // Off by default: the spikes are the marking events this chart is read for,
-  // so raw has to stay one tap away.
-  const shown = useMemo(() => {
-    if (!smooth) return points;
-    const pcts  = centeredAvg(points.map((p) => p.pct),  SMOOTH_WINDOW);
-    const moods = centeredAvg(points.map((p) => p.mood), SMOOTH_WINDOW);
-    return points.map((p, i) => ({ ...p, pct: pcts[i] ?? 0, mood: moods[i] }));
-  }, [points, smooth]);
-
-  const hasMoods = points.some((p) => p.mood !== null);
-
-  if (points.length === 0) return <Empty />;
-
-  const tickInterval = Math.max(1, Math.floor(points.length / 6));
-
-  return (
-    <div style={{ padding: '16px 8px 8px' }}>
-      {!hasMoods && (
-        <div style={{ fontSize: 11, color: T.textMuted, textAlign: 'center', marginBottom: 8 }}>
-          Aucune humeur enregistrée — logue-la depuis le résumé.
-        </div>
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 8px' }}>
-        <button
-          onClick={() => setSmooth((v) => !v)}
-          aria-pressed={smooth}
-          style={{
-            background: T.rowHoverBg,
-            color: smooth ? T.amber : T.textSecondary,
-            border: `1px solid ${smooth ? T.amber : T.glassBorder}`,
-            borderRadius: 4, padding: '4px 8px', minHeight: 30,
-            fontSize: 11, fontFamily: 'DM Sans, sans-serif',
-            cursor: 'pointer', outline: 'none',
-          }}
-          title={smooth
-            ? `Moyenne centrée sur ${SMOOTH_WINDOW} jours`
-            : 'Valeurs quotidiennes brutes'}
-        >
-          {smooth ? `∿ Lissé ${SMOOTH_WINDOW}j` : '∿ Lisser'}
-        </button>
-      </div>
-
-      <ResponsiveContainer width="100%" height={200}>
-        <ComposedChart data={shown} margin={{ top: 4, right: 32, bottom: 4, left: -20 }}>
-          <defs>
-            <linearGradient id="habitGrad2" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={T.emerald} stopOpacity={0.2} />
-              <stop offset="95%" stopColor={T.emerald} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={T.glassBorder} vertical={false} />
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' }}
-            axisLine={false} tickLine={false}
-            interval={tickInterval}
-          />
-          <YAxis
-            yAxisId="left"
-            domain={[0, 100]}
-            tickFormatter={(v: number) => `${v}%`}
-            tick={{ fontSize: 9, fill: T.emerald }}
-            axisLine={false} tickLine={false}
-          />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            domain={[1, 5]}
-            ticks={[1, 2, 3, 4, 5]}
-            tick={{ fontSize: 9, fill: T.amber }}
-            axisLine={false} tickLine={false}
-          />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null;
-              const pct  = payload.find((p) => p.dataKey === 'pct')?.value as number;
-              const mood = payload.find((p) => p.dataKey === 'mood')?.value as number | null;
-              return (
-                <TooltipBox>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                    {label}{smooth && <span style={{ color: T.textMuted, fontWeight: 400 }}> · lissé {SMOOTH_WINDOW}j</span>}
-                  </div>
-                  <div>Habitudes : <b>{pct}%</b></div>
-                  {/* Smoothing makes mood fractional, so neither the face nor
-                      the 1–5 label applies — fall back to the number. */}
-                  {mood != null && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>Humeur :</span>
-                      {smooth ? (
-                        <b>{mood.toFixed(1)}</b>
-                      ) : (
-                        <>
-                          <MoodFace mood={mood as MoodValue} size={16} />
-                          <b>{MOOD_LABEL[mood as MoodValue]}</b>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {mood == null && <div style={{ color: T.textMuted }}>Humeur non renseignée</div>}
-                </TooltipBox>
-              );
-            }}
-          />
-          <Area
-            yAxisId="left"
-            dataKey="pct"
-            stroke={T.emerald} strokeWidth={1.5} strokeOpacity={0.7}
-            fill="url(#habitGrad2)" dot={false} activeDot={false}
-          />
-          {/* No connectNulls: bridging unlogged days drew a straight line that
-              read as a calm, flat stretch when it was really missing data. The
-              small dot keeps a day surrounded by holes from vanishing, since a
-              dotless line can't render an isolated point. */}
-          <Line
-            yAxisId="right"
-            dataKey="mood"
-            stroke={T.amber} strokeWidth={2.5}
-            dot={{ r: 1.2, fill: T.amber, strokeWidth: 0 }}
-            activeDot={{ r: 4, fill: T.amber }}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-      <Legend items={[
-        { color: T.emerald, opacity: 0.7, label: `habitudes %${smooth ? ` (lissé ${SMOOTH_WINDOW}j)` : ''}` },
-        { color: T.amber,   opacity: 1,   label: `humeur (1–5)${smooth ? ` (lissé ${SMOOTH_WINDOW}j)` : ''}` },
+        { color: T.emerald, opacity: 0.5, label: t('chart.pctOfDay') },
+        { color: T.emerald, opacity: 1,   label: t('chart.avg7dLegend') },
       ]} />
     </div>
   );
@@ -370,6 +225,7 @@ interface HabitWeeklyBarProps { habits: Habit[] }
 
 export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
   const { T } = useTheme();
+  const { t } = useLang();
   const [selectedId, setSelectedId] = useState<string>(habits[0]?.id ?? '');
   const [inverted, setInverted] = useState(false);
 
@@ -415,9 +271,9 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
         <button
           onClick={() => setInverted(v => !v)}
           style={buttonStyle}
-          title={inverted ? 'Affiché : jours NON faits' : 'Affiché : jours faits'}
+          title={t(inverted ? 'chart.showingNotDone' : 'chart.showingDone')}
         >
-          {inverted ? '↕ Inversé' : '↕ Inverser'}
+          {t(inverted ? 'chart.inverted' : 'chart.invert')}
         </button>
         <select
           value={selectedId}
@@ -442,7 +298,7 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
 
       {displayPoints.length === 0 ? (
         <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-          Aucune donnée pour cette habitude.
+          {t('chart.noDataHabit')}
         </div>
       ) : (
         <>
@@ -467,8 +323,8 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
                   const point = payload[0].payload as WeekBarPoint & { display: number };
                   return (
                     <TooltipBox>
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>Semaine {point.label}</div>
-                      <div><b>{point.display}</b>/{point.activeDays} jours actifs {inverted ? '(inversé)' : ''}</div>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('chart.week', { n: point.label })}</div>
+                      <div><b>{point.display}</b>/{point.activeDays} {t('chart.activeDays')} {inverted ? t('chart.invertedSuffix') : ''}</div>
                     </TooltipBox>
                   );
                 }}
@@ -530,9 +386,10 @@ export function HabitWeeklyBarChart({ habits }: Readonly<HabitWeeklyBarProps>) {
 
 function Empty() {
   const { T } = useTheme();
+  const { t } = useLang();
   return (
     <div style={{ color: T.textMuted, textAlign: 'center', padding: 24, fontSize: 13 }}>
-      Aucune donnée d'habitude.
+      {t('chart.noHabitData')}
     </div>
   );
 }
@@ -550,8 +407,10 @@ function TooltipBox({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-function Legend({ items }: Readonly<{
+function Legend({ items, block = false }: Readonly<{
   items: { color: string; opacity: number; label: string }[];
+  /** Filled swatch instead of a rule — for areas, where a hairline misreads. */
+  block?: boolean;
 }>) {
   const { T } = useTheme();
   return (
@@ -562,10 +421,204 @@ function Legend({ items }: Readonly<{
     }}>
       {items.map((item) => (
         <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 20, height: 2.5, background: item.color, opacity: item.opacity, borderRadius: 2 }} />
+          <div style={{ width: block ? 11 : 20, height: block ? 11 : 2.5,
+            background: item.color, opacity: item.opacity,
+            borderRadius: block ? 3 : 2 }} />
           <span>{item.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Chart 2: habits vs how far mood sits from your own average ─────────────
+//
+// This replaced a chart that plotted habits 0–100 and mood 1–5 on two y-axes in
+// one frame. Two scales in one frame have an arbitrary alignment, so the chart
+// invented a correlation the data never claimed — and it was the direct cause of
+// "the high mood stretch doesn't read": the mood line's height meant nothing
+// beside the habits area, and a single bad day drew a full-height stroke louder
+// than the fortnight it interrupted.
+//
+// So: two panes, one measure each, on a shared and aligned x-axis. Habits keeps a
+// percentage. Mood becomes its distance from your own average, filled — which
+// turns "a period above normal" from a shape you have to trace into a mass you
+// just see.
+//
+// The `cmp` prefix on the helpers below is a leftover from the three candidates
+// this was chosen among; it means nothing now beyond "belongs to this chart".
+
+const CMP_WINDOW = 7;
+
+interface MoodChartProps { data: AppData }
+
+/** Identical margins and y-axis width on every pane — that, and nothing else, is
+ *  what keeps the stacked panes and the ribbon aligned on the same day. */
+const PANE_MARGIN = { top: 6, right: 12, bottom: 0, left: 0 };
+const AXIS_W = 40;
+
+interface CmpPoint extends ChartPoint { rawPct: number; rawMood: number | null }
+
+function useCmpData(data: AppData) {
+  const points = useChartData(data);
+  return useMemo(() => {
+    const pcts  = centeredAvg(points.map((p) => p.pct),  CMP_WINDOW);
+    const moods = centeredAvg(points.map((p) => p.mood), CMP_WINDOW);
+    const logged = points.map((p) => p.mood).filter((m): m is MoodValue => m != null);
+    const baseline = logged.length
+      ? Math.round((logged.reduce((s, m) => s + m, 0) / logged.length) * 10) / 10
+      : 3;
+    const rows: CmpPoint[] = points.map((p, i) => ({
+      ...p,
+      rawPct: p.pct,
+      rawMood: p.mood,
+      pct: pcts[i] ?? 0,
+      mood: moods[i] as MoodValue | null,
+    }));
+    return { rows, baseline };
+  }, [points]);
+}
+
+function sharedXAxis(rows: CmpPoint[], T: ThemeTokens, visible: boolean) {
+  return (
+    <XAxis
+      dataKey="label"
+      height={visible ? 18 : 0}
+      tick={visible ? { fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' } : false}
+      axisLine={false} tickLine={false}
+      interval={Math.max(1, Math.floor(rows.length / 6))}
+    />
+  );
+}
+
+/** The habits pane, identical in all three variants: smoothed area, raw as a ghost. */
+function HabitsPane({ rows, showX, gid }: Readonly<{
+  rows: CmpPoint[]; showX: boolean;
+  /* Unique per variant: three panes render at once, and url(#id) resolves on the
+     first match in the document, not the enclosing <svg>. */
+  gid: string;
+}>) {
+  const { T } = useTheme();
+  return (
+    <ResponsiveContainer width="100%" height={showX ? 118 : 100}>
+      <ComposedChart data={rows} margin={PANE_MARGIN}>
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor={T.emerald} stopOpacity={0.22} />
+            <stop offset="95%" stopColor={T.emerald} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid stroke={T.glassBorder} vertical={false} />
+        {sharedXAxis(rows, T, showX)}
+        <YAxis
+          width={AXIS_W} domain={[0, 100]} ticks={[0, 50, 100]}
+          tickFormatter={(v: number) => `${v}%`}
+          tick={{ fontSize: 9, fill: T.textMuted }}
+          axisLine={false} tickLine={false}
+        />
+        {/* The raw daily series stays visible, just recessive — the smoothing is
+            a reading aid, not a claim that the spikes weren't real. */}
+        <Line dataKey="rawPct" stroke={T.emerald} strokeWidth={1} strokeOpacity={0.22}
+              dot={false} activeDot={false} />
+        <Area dataKey="pct" stroke={T.emerald} strokeWidth={2}
+              fill={`url(#${gid})`} dot={false} activeDot={false} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
+  const { T } = useTheme();
+  const { t } = useLang();
+  const { rows, baseline } = useCmpData(data);
+  if (rows.length === 0) return <Empty />;
+
+  // A symmetric domain puts zero at exactly half height, which is why the
+  // gradient can split at a fixed 50% instead of a computed offset.
+  const devs = rows.map((r) => (r.mood == null ? null : Math.round((r.mood - baseline) * 10) / 10));
+  const span = Math.max(0.5, ...devs.map((d) => Math.abs(d ?? 0)));
+  const shown = rows.map((r, i) => ({ ...r, dev: devs[i] }));
+
+  return (
+    <div style={{ paddingBottom: 8 }}>
+      <PaneLabel>{t('cmp.habitsPane')}</PaneLabel>
+      <HabitsPane rows={rows} showX={false} gid="habitPaneGrad" />
+      <PaneLabel>{t('cmp.moodPane')}</PaneLabel>
+      {/* The sentence, not the legend, is what makes this pane readable cold: a
+          deviation chart is meaningless until you know what it deviates from. */}
+      <Caption>{t('cmp.howToRead', { v: baseline })}</Caption>
+      <ResponsiveContainer width="100%" height={124}>
+        <ComposedChart data={shown} margin={PANE_MARGIN}>
+          <defs>
+            <linearGradient id="cmpDev" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor={T.moodHigh} stopOpacity={0.38} />
+              <stop offset="50%"  stopColor={T.moodHigh} stopOpacity={0.04} />
+              <stop offset="50%"  stopColor={T.moodLow}  stopOpacity={0.04} />
+              <stop offset="100%" stopColor={T.moodLow}  stopOpacity={0.38} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke={T.glassBorder} vertical={false} />
+          {sharedXAxis(rows, T, true)}
+          <YAxis
+            width={AXIS_W} domain={[-span, span]}
+            tickFormatter={(v: number) => (v > 0 ? `+${v}` : `${v}`)}
+            tick={{ fontSize: 9, fill: T.textMuted }}
+            axisLine={false} tickLine={false}
+          />
+          {/* Labelled in place. The baseline is the one value the reader must
+              know, and a legend across the chart is the wrong place for it. */}
+          <ReferenceLine
+            y={0} stroke={T.textSecondary} strokeOpacity={0.55}
+            label={{
+              value: t('cmp.baseline', { v: baseline }),
+              position: 'insideTopLeft',
+              fill: T.textMuted, fontSize: 9, fontFamily: 'DM Sans, sans-serif',
+            }}
+          />
+          <Tooltip content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
+            const p = payload[0].payload as CmpPoint & { dev: number | null };
+            if (p.dev == null) return null;
+            return (
+              <TooltipBox>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                <div><b>{p.dev > 0 ? `+${p.dev}` : p.dev}</b> {t(p.dev >= 0 ? 'cmp.above' : 'cmp.below')}</div>
+              </TooltipBox>
+            );
+          }} />
+          <Area dataKey="dev" stroke={T.textMuted} strokeWidth={1.5} strokeOpacity={0.55}
+                fill="url(#cmpDev)" dot={false} activeDot={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+      <Legend block items={[
+        { color: T.moodHigh, opacity: 1, label: t('cmp.above') },
+        { color: T.moodLow,  opacity: 1, label: t('cmp.below') },
+      ]} />
+    </div>
+  );
+}
+
+function PaneLabel({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { T } = useTheme();
+  return (
+    <div style={{
+      fontSize: 9, color: T.textMuted, fontFamily: 'DM Sans, sans-serif',
+      padding: '6px 0 0 14px', letterSpacing: '0.04em',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function Caption({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { T } = useTheme();
+  return (
+    <div style={{
+      fontSize: 10, lineHeight: 1.45, color: T.textMuted,
+      fontFamily: 'DM Sans, sans-serif',
+      padding: '2px 14px 4px', maxWidth: 620,
+    }}>
+      {children}
     </div>
   );
 }

@@ -2,13 +2,14 @@ import { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { AppData } from '../../types';
 import {
-  formatDayKey, getDayLabel, getWeekDays, parseDayKey,
+  formatDayKey, getWeekDays, parseDayKey,
 } from '../../utils/dateUtils';
 import {
   getDayCompletionRate, getDayLevel, getHabitStreak, getWeekCompletionRate,
 } from '../../utils/dataUtils';
 import type { DayLevelTier } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
+import { useLang } from '../../i18n';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Flame } from '../ui/Flame';
 import { HabitHeatmap } from './HabitHeatmap';
@@ -76,6 +77,7 @@ function BlockHeader({ children }: Readonly<{ children: React.ReactNode }>) {
 
 export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
   const { T } = useTheme();
+  const { t, d: dates } = useLang();
   const isMobile = useIsMobile();
   const still = useReducedMotion() ?? false;
 
@@ -94,8 +96,8 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
     const dayKey = formatDayKey(day);
     const { done, total } = getDayCompletionRate(data, currentWeekKey, dayKey);
     const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-    return { dayKey, label: getDayLabel(day), pct, done, total, level: getDayLevel(pct) };
-  }), [data, currentWeekKey, weekDays]);
+    return { dayKey, label: dates.dayLabel(day), pct, done, total, tier: getDayLevel(pct) };
+  }), [data, currentWeekKey, weekDays, dates]);
 
   const levelColors: Record<DayLevelTier, string> = {
     beast: T.emerald,
@@ -119,31 +121,31 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
 
       {/* Top stat row */}
       <motion.div {...fadeUp(0, still)} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-        <BigStat label="Cette semaine" value={`${thisPct}%`} sub={`${thisDone} / ${thisTotal} tâches`} />
+        <BigStat label={t('stats.thisWeek')} value={`${thisPct}%`} sub={`${thisDone} / ${thisTotal} ${t('common.tasks')}`} />
         <BigStat
-          label="vs semaine dernière"
+          label={t('stats.vsLastWeek')}
           value={deltaValue}
           sub={`Avant : ${lastPct}% (${lastDone}/${lastTotal})`}
           accent={deltaAccent}
         />
-        <BigStat label="Meilleure semaine" value={data.allTimeStats.bestWeekCount || '—'} sub="tâches en une semaine" accent={T.amber} />
-        <BigStat label="Depuis le début" value={data.allTimeStats.totalTasksCompleted} sub="tâches faites" accent={T.sage} />
+        <BigStat label={t('stats.bestWeek')} value={data.allTimeStats.bestWeekCount || '—'} sub={t('stats.tasksInAWeek')} accent={T.amber} />
+        <BigStat label={t('stats.allTime')} value={data.allTimeStats.totalTasksCompleted} sub={t('stats.tasksDoneSub')} accent={T.sage} />
         <BigStat
-          label="Plus longue série"
+          label={t('stats.longestStreak')}
           value={data.allTimeStats.longestHabitStreak > 0
             ? <><Flame size={24} /> {data.allTimeStats.longestHabitStreak}</>
             : '—'}
-          sub={data.allTimeStats.longestHabitName || 'jours'}
+          sub={data.allTimeStats.longestHabitName || t('common.days')}
           accent={T.aqua}
         />
       </motion.div>
 
       {/* Day performance */}
       <motion.div {...fadeUp(0.1, still)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Performance du jour — semaine en cours</BlockHeader>
+        <BlockHeader>{t('stats.dayPerformance')}</BlockHeader>
         <div style={{ display: 'flex' }}>
-          {dayRows.map(({ dayKey, label, pct, done, total, level }) => {
-            const col = levelColors[level.tier];
+          {dayRows.map(({ dayKey, label, pct, done, total, tier }) => {
+            const col = levelColors[tier];
             return (
               <div key={dayKey} style={{
                 // minWidth 0 is the actual fix: without it a flex item refuses
@@ -170,10 +172,10 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
                   fontSize: isMobile ? 9 : 10, fontWeight: 700, color: col,
                   lineHeight: 1.2, overflowWrap: 'anywhere',
                 }}>
-                  {level.tier === 'fire'  && <Flame size={isMobile ? 9 : 11} />}
-                  {level.tier === 'beast' && <Flame size={isMobile ? 9 : 11} hot />}
-                  {(level.tier === 'fire' || level.tier === 'beast') && ' '}
-                  {level.label}
+                  {tier === 'fire'  && <Flame size={isMobile ? 9 : 11} />}
+                  {tier === 'beast' && <Flame size={isMobile ? 9 : 11} hot />}
+                  {(tier === 'fire' || tier === 'beast') && ' '}
+                  {t(`level.${tier}`)}
                 </div>
               </div>
             );
@@ -183,25 +185,25 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
 
       {/* Habit consistency heatmap */}
       <motion.div {...fadeUp(0.2, still)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Régularité des habitudes</BlockHeader>
+        <BlockHeader>{t('stats.habitRegularity')}</BlockHeader>
         <HabitHeatmap habits={data.habits} currentWeekKey={currentWeekKey} moods={data.moods} />
       </motion.div>
 
       {/* Habit weekly bar chart */}
       <motion.div {...fadeUp(0.3, still)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Historique par semaine</BlockHeader>
+        <BlockHeader>{t('stats.weekHistory')}</BlockHeader>
         <HabitWeeklyBarChart habits={data.habits} />
       </motion.div>
 
       {/* Habits vs Mood */}
       <motion.div {...fadeUp(0.4, still)} className="glass" style={{ marginBottom: 12 }}>
-        <BlockHeader>Habitudes et humeur</BlockHeader>
+        <BlockHeader>{t('stats.habitsAndMood')}</BlockHeader>
         <HabitMoodChart data={data} />
       </motion.div>
 
       {/* Habit streaks grid */}
       <motion.div {...fadeUp(0.5, still)} className="glass" style={{ }}>
-        <BlockHeader>Séries en cours</BlockHeader>
+        <BlockHeader>{t('stats.currentStreaks')}</BlockHeader>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {data.habits.map((h) => {
             const streak = getHabitStreak(h);
