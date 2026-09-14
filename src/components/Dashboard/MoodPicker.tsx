@@ -140,7 +140,7 @@ export function MoodPicker({ moods, onSetMood }: Readonly<MoodPickerProps>) {
             padding: '4px 0', textAlign: 'center',
           }}
         >
-          + semaine précédente
+          {t('mood.prevWeek')}
         </button>
       </div>
     </div>

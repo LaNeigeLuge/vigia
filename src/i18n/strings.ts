@@ -43,6 +43,7 @@ export const en = {
 
   'common.delete': 'Delete',
   'common.rename': 'Rename',
+  'common.close': 'Close',
   'common.today': 'Today',
   'common.yesterday': 'Yesterday',
   'common.tasks': 'tasks',
@@ -70,6 +71,7 @@ export const en = {
   'backlog.placeholder': 'New task…',
   'backlog.empty': 'No tasks — tap "+ Add"',
   'backlog.deleteItem': 'Delete {name}',
+  'backlog.completed': 'Done ({n})',
 
   'habits.habit': 'Habit',
   'habits.week': 'Week',
@@ -102,6 +104,7 @@ export const en = {
   'stats.habitsAndMood': 'Habits and mood',
   'stats.currentStreaks': 'Current streaks',
   'stats.noHabits': 'No habits tracked yet.',
+  'stats.expandHint': '⤢ tap to expand',
 
   'chart.day': 'Day:',
   'chart.avg7d': '7-day avg:',
@@ -124,6 +127,22 @@ export const en = {
   'cmp.habitsPane': 'habits done, % of the day',
   'cmp.moodPane': 'mood, 1–5',
 
+  'periods.title': 'Mood timeline',
+  'periods.rotateHint': '↻ Rotate your phone for a wider view',
+  'periods.addButton': '+ Name a period',
+  'periods.cancelAdd': 'Cancel',
+  'periods.selectStart': 'Tap a start date on the chart above',
+  'periods.selectEnd': 'Now tap the end date',
+  'periods.namePrompt': 'Name this period (e.g. "Breakup", "New job"):',
+  'periods.changeCategoryHint': 'Click to change category',
+  'periods.category.travel': 'Travel',
+  'periods.category.difficult': 'Difficult',
+  'periods.category.arc': 'Major arc',
+  'periods.category.other': 'Other',
+  'periods.deleteConfirm': 'Delete "{name}"?',
+  'periods.avgMood': 'avg mood {v}',
+  'periods.empty': 'No periods yet — tap "+ Name a period" and select a range on the chart.',
+
   'level.none': 'Nothing',
   'level.slow': 'Starting',
   'level.mid': 'On track',
@@ -135,6 +154,7 @@ export const en = {
   'mood.3': 'okay',
   'mood.4': 'good',
   'mood.5': 'great',
+  'mood.prevWeek': '+ previous week',
 
   'emotion.heureux': 'Happy',
   'emotion.energise': 'Energised',
@@ -187,6 +207,7 @@ export const fr: Record<StringKey, string> = {
 
   'common.delete': 'Supprimer',
   'common.rename': 'Renommer',
+  'common.close': 'Fermer',
   'common.today': "Aujourd'hui",
   'common.yesterday': 'Hier',
   'common.tasks': 'tâches',
@@ -214,6 +235,7 @@ export const fr: Record<StringKey, string> = {
   'backlog.placeholder': 'Nouvelle tâche…',
   'backlog.empty': 'Aucune tâche — clique sur "+ Ajouter"',
   'backlog.deleteItem': 'Supprimer {name}',
+  'backlog.completed': 'Terminé ({n})',
 
   'habits.habit': 'Habitude',
   'habits.week': 'Semaine',
@@ -246,6 +268,7 @@ export const fr: Record<StringKey, string> = {
   'stats.habitsAndMood': 'Habitudes et humeur',
   'stats.currentStreaks': 'Séries en cours',
   'stats.noHabits': "Aucune habitude suivie pour l'instant.",
+  'stats.expandHint': '⤢ toucher pour agrandir',
 
   'chart.day': 'Jour :',
   'chart.avg7d': 'Moy. 7j :',
@@ -268,6 +291,22 @@ export const fr: Record<StringKey, string> = {
   'cmp.habitsPane': 'habitudes faites, % du jour',
   'cmp.moodPane': 'humeur, 1–5',
 
+  'periods.title': 'Historique de l\'humeur',
+  'periods.rotateHint': '↻ Tourne ton téléphone pour une vue plus large',
+  'periods.addButton': '+ Nommer une période',
+  'periods.cancelAdd': 'Annuler',
+  'periods.selectStart': 'Touche une date de début sur le graphique',
+  'periods.selectEnd': 'Touche maintenant la date de fin',
+  'periods.namePrompt': 'Nomme cette période (ex. "Rupture", "Nouveau travail") :',
+  'periods.changeCategoryHint': 'Cliquer pour changer la catégorie',
+  'periods.category.travel': 'Voyage',
+  'periods.category.difficult': 'Difficile',
+  'periods.category.arc': 'Période marquante',
+  'periods.category.other': 'Autre',
+  'periods.deleteConfirm': 'Supprimer « {name} » ?',
+  'periods.avgMood': 'humeur moy. {v}',
+  'periods.empty': 'Pas encore de période — touche "+ Nommer une période" puis sélectionne une plage sur le graphique.',
+
   'level.none': 'Rien',
   'level.slow': 'Démarrage',
   'level.mid': 'En route',
@@ -279,6 +318,7 @@ export const fr: Record<StringKey, string> = {
   'mood.3': 'normal',
   'mood.4': 'ok',
   'mood.5': 'super',
+  'mood.prevWeek': '+ semaine précédente',
 
   'emotion.heureux': 'Heureux',
   'emotion.energise': 'Énergisé',

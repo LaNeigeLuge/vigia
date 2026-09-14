@@ -1,4 +1,4 @@
-import type { AppData, Habit, Task } from '../types';
+import type { AppData, Habit, LifePeriod, Task } from '../types';
 import { formatDayKey, getWeekDays, getWeekStart, parseDayKey } from './dateUtils';
 import { addDays } from 'date-fns';
 
@@ -37,6 +37,7 @@ export function createDefaultAppData(): AppData {
     todos: [],
     moods: {},
     emotionalCheckins: {},
+    lifePeriods: [],
     allTimeStats: {
       totalTasksCompleted: 0,
       bestWeekCount: 0,
@@ -187,6 +188,21 @@ export function toggleHabit(data: AppData, habitId: string, dayKey: string): App
   const newCompletions = { ...habit.completions, [dayKey]: !habit.completions[dayKey] };
   if (!newCompletions[dayKey]) delete newCompletions[dayKey];
   return updateHabit(data, habitId, { completions: newCompletions });
+}
+
+export function addPeriod(data: AppData, period: LifePeriod): AppData {
+  return { ...data, lifePeriods: [...data.lifePeriods, period] };
+}
+
+export function updatePeriod(data: AppData, periodId: string, changes: Partial<LifePeriod>): AppData {
+  return {
+    ...data,
+    lifePeriods: data.lifePeriods.map((p) => (p.id === periodId ? { ...p, ...changes } : p)),
+  };
+}
+
+export function deletePeriod(data: AppData, periodId: string): AppData {
+  return { ...data, lifePeriods: data.lifePeriods.filter((p) => p.id !== periodId) };
 }
 
 export function getLastFourWeekStarts(currentWeekKey: string): string[] {

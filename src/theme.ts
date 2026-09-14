@@ -62,6 +62,9 @@ export interface ThemeTokens {
   heatHigh: string;
   heatMid: string;
   heatLow: string;
+  /** Mood-period category legend: travel=emerald, difficult=amber, other=aqua
+   *  already exist above — this is the one new hue, for a major/marking arc. */
+  periodArc: string;
   ease: [number, number, number, number];
 }
 
@@ -109,6 +112,10 @@ const light: ThemeTokens = {
   heatLow:       '#9F8DA6',   // 3.0:1
   heatMid:       '#8A7194',   // 4.2:1
   heatHigh:      '#6E5578',   // 6.4:1
+  // Muted brick red, desaturated to the same chalky level as amber/mauve
+  // rather than a raw red — a "marking" period is drawn attention to, not
+  // an alarm.
+  periodArc:     '#b3524a',
   ease:          [0.4, 0, 0.2, 1],
 };
 
@@ -152,6 +159,7 @@ const dark: ThemeTokens = {
   heatLow:       '#E4DEE6',   // 13.2:1
   heatMid:       '#C9BCCE',   // 9.6:1
   heatHigh:      '#AC99B4',   // 6.6:1
+  periodArc:     '#D9897E',
   ease:          [0.4, 0, 0.2, 1],
 };
 

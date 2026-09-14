@@ -196,3 +196,9 @@ body {
 .dark .recharts-cartesian-grid-vertical line {
   stroke: rgba(245,241,232,0.06) !important;
 }
+
+/* Clicking a chart to select a mood period focuses its <svg> for
+   accessibility — the browser's default focus ring is a 5px near-black
+   outline that reads as a dark box swallowing the chart. The scrub/anchor
+   lines already give click feedback, so the ring is redundant here. */
+.recharts-surface:focus { outline: none; }

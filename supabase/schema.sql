@@ -71,6 +71,22 @@ create table if not exists emotional_checkins (
 
 create index if not exists emotional_checkins_user_idx on emotional_checkins(user_id);
 
+-- Named mood-history spans on the mood chart ("breakup", "new job", ...).
+-- Deliberately not tied to habit/mood rows: a period is a free-form annotation
+-- over the timeline, and start_day/end_day can pre- or post-date any logged data.
+create table if not exists life_periods (
+  id         text        primary key,
+  user_id    uuid        not null references auth.users(id) on delete cascade,
+  name       text        not null,
+  start_day  date        not null,
+  end_day    date        not null,
+  -- Fixed legend: travel, difficult, arc (major/marking), other.
+  category   text        not null default 'other',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists life_periods_user_idx on life_periods(user_id);
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 
 alter table tasks              enable row level security;
@@ -79,6 +95,7 @@ alter table habit_logs         enable row level security;
 alter table todos              enable row level security;
 alter table mood_logs          enable row level security;
 alter table emotional_checkins enable row level security;
+alter table life_periods       enable row level security;
 
 -- Tasks: each user sees and writes only their own rows
 create policy "tasks: own data only"
@@ -113,5 +130,11 @@ create policy "mood_logs: own data only"
 -- Emotional check-ins: same
 create policy "emotional_checkins: own data only"
   on emotional_checkins for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Life periods: same
+create policy "life_periods: own data only"
+  on life_periods for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);

@@ -40,12 +40,27 @@ export type EmotionId =
   | 'joueur' | 'enjoleur' | 'bien' | 'blase' | 'hebete'
   | 'embarrasse' | 'apeure' | 'malaaise' | 'tendu' | 'en-colere' | 'triste';
 
+/** Fixed color legend for periods — travel/difficult/arc/other, never derived
+ *  or user-picked, so the same category always reads the same color. */
+export type PeriodCategory = 'travel' | 'difficult' | 'arc' | 'other';
+
+/** A named span on the mood timeline ("breakup", "new job", ...). Spans can
+ *  overlap — they annotate the same history from different angles at once. */
+export interface LifePeriod {
+  id: string;
+  name: string;
+  startDay: string; // 'YYYY-MM-DD', inclusive
+  endDay: string; // 'YYYY-MM-DD', inclusive
+  category: PeriodCategory;
+}
+
 export interface AppData {
   weeks: Record<string, WeekData>;
   habits: Habit[];
   todos: Todo[];
   moods: Record<string, MoodValue>;
   emotionalCheckins: Record<string, Partial<Record<EmotionSlot, EmotionId>>>;
+  lifePeriods: LifePeriod[];
   allTimeStats: {
     totalTasksCompleted: number;
     bestWeekCount: number;

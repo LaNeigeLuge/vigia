@@ -116,7 +116,7 @@ export function Backlog({ todos, onAdd, onToggle, onDelete }: Readonly<BacklogPr
               fontFamily: 'DM Sans, sans-serif',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
-              Terminé ({completed.length})
+              {t('backlog.completed', { n: completed.length })}
             </div>
             {completed.map((todo) => (
               <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} />

@@ -5,7 +5,7 @@
  * Tables: tasks, habits, habit_logs  (see supabase/schema.sql)
  */
 import { supabase } from './supabase';
-import type { AppData, EmotionId, EmotionSlot, Habit, MoodValue, Task, Todo } from '../types';
+import type { AppData, EmotionId, EmotionSlot, Habit, LifePeriod, MoodValue, PeriodCategory, Task, Todo } from '../types';
 import { getWeekStartKey } from '../utils/dateUtils';
 import { getHabitStreak } from '../utils/dataUtils';
 
@@ -29,13 +29,14 @@ function throwOnError(error: { message: string } | null, label: string): void {
 // ─── Load ─────────────────────────────────────────────────────────────────────
 
 export async function loadAllData(userId: string): Promise<AppData> {
-  const [tasksRes, habitsRes, logsRes, moodsRes, todosRes, checkinsRes] = await Promise.all([
+  const [tasksRes, habitsRes, logsRes, moodsRes, todosRes, checkinsRes, periodsRes] = await Promise.all([
     supabase.from('tasks').select('*').eq('user_id', userId).order('created_at'),
     supabase.from('habits').select('*').eq('user_id', userId).order('sort_order, created_at'),
     supabase.from('habit_logs').select('*').eq('user_id', userId),
     supabase.from('mood_logs').select('day_key, mood').eq('user_id', userId),
     supabase.from('todos').select('*').eq('user_id', userId).order('created_at'),
     supabase.from('emotional_checkins').select('day_key, slot, emotion').eq('user_id', userId),
+    supabase.from('life_periods').select('id, name, start_day, end_day, category').eq('user_id', userId).order('start_day'),
   ]);
 
   if (tasksRes.error)    console.error('[db] tasks load error',    tasksRes.error);
@@ -44,6 +45,7 @@ export async function loadAllData(userId: string): Promise<AppData> {
   if (moodsRes.error)    console.error('[db] moods load error',    moodsRes.error);
   if (todosRes.error)    console.error('[db] todos load error',    todosRes.error);
   if (checkinsRes.error) console.error('[db] checkins load error', checkinsRes.error);
+  if (periodsRes.error)  console.error('[db] periods load error',  periodsRes.error);
 
   const todos: Todo[] = (todosRes.data ?? []).map((row) => ({
     id:        row.id         as string,
@@ -118,7 +120,15 @@ export async function loadAllData(userId: string): Promise<AppData> {
     emotionalCheckins[dk][slot] = emo;
   }
 
-  return { weeks, habits, todos, moods, emotionalCheckins, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
+  const lifePeriods: LifePeriod[] = (periodsRes.data ?? []).map((row) => ({
+    id:        row.id        as string,
+    name:      row.name      as string,
+    startDay:  row.start_day as string,
+    endDay:    row.end_day   as string,
+    category:  (row.category as PeriodCategory | null) ?? 'other',
+  }));
+
+  return { weeks, habits, todos, moods, emotionalCheckins, lifePeriods, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
@@ -221,4 +231,35 @@ export async function dbCheckHabitLog(userId: string, habitId: string, dayKey: s
 export async function dbUncheckHabitLog(habitId: string, dayKey: string): Promise<void> {
   const { error } = await supabase.from('habit_logs').delete().eq('habit_id', habitId).eq('day_key', dayKey);
   throwOnError(error, 'deleteLog');
+}
+
+// ─── Life periods ────────────────────────────────────────────────────────────
+
+export async function dbAddPeriod(
+  userId: string, name: string, startDay: string, endDay: string, category: PeriodCategory,
+): Promise<LifePeriod> {
+  const period: LifePeriod = { id: generateId(), name, startDay, endDay, category };
+  const { error } = await supabase.from('life_periods').insert({
+    id: period.id, user_id: userId, name, start_day: startDay, end_day: endDay, category,
+  });
+  throwOnError(error, 'addPeriod');
+  return period;
+}
+
+export async function dbUpdatePeriod(
+  periodId: string,
+  changes: { name?: string; startDay?: string; endDay?: string; category?: PeriodCategory },
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (changes.name     !== undefined) row.name      = changes.name;
+  if (changes.startDay !== undefined) row.start_day = changes.startDay;
+  if (changes.endDay   !== undefined) row.end_day   = changes.endDay;
+  if (changes.category !== undefined) row.category  = changes.category;
+  const { error } = await supabase.from('life_periods').update(row).eq('id', periodId);
+  throwOnError(error, 'updatePeriod');
+}
+
+export async function dbDeletePeriod(periodId: string): Promise<void> {
+  const { error } = await supabase.from('life_periods').delete().eq('id', periodId);
+  throwOnError(error, 'deletePeriod');
 }

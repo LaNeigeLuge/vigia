@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import type { AppData } from '../../types';
+import type { AppData, LifePeriod, PeriodCategory } from '../../types';
 import {
   formatDayKey, getWeekDays, parseDayKey,
 } from '../../utils/dateUtils';
@@ -14,6 +14,7 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Flame } from '../ui/Flame';
 import { HabitHeatmap } from './HabitHeatmap';
 import { HabitMoodChart, HabitWeeklyBarChart } from './HabitCharts';
+import { MoodDetailModal } from './MoodDetailModal';
 
 const ease = [0.4, 0, 0.2, 1] as const;
 const fadeUp = (delay = 0, still = false) => still ? {
@@ -27,6 +28,9 @@ const fadeUp = (delay = 0, still = false) => still ? {
 interface StatsProps {
   data: AppData;
   currentWeekKey: string;
+  onAddPeriod: (name: string, startDay: string, endDay: string, category: PeriodCategory) => void;
+  onUpdatePeriod: (periodId: string, changes: Partial<Pick<LifePeriod, 'name' | 'startDay' | 'endDay' | 'category'>>) => void;
+  onDeletePeriod: (periodId: string) => void;
 }
 
 function BigStat({ label, value, sub, accent }: Readonly<{
@@ -75,11 +79,12 @@ function BlockHeader({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
+export function Stats({ data, currentWeekKey, onAddPeriod, onUpdatePeriod, onDeletePeriod }: Readonly<StatsProps>) {
   const { T } = useTheme();
   const { t, d: dates } = useLang();
   const isMobile = useIsMobile();
   const still = useReducedMotion() ?? false;
+  const [moodModalOpen, setMoodModalOpen] = useState(false);
 
   const { done: thisDone, total: thisTotal } = getWeekCompletionRate(data, currentWeekKey);
   const thisPct = thisTotal === 0 ? 0 : Math.round((thisDone / thisTotal) * 100);
@@ -198,8 +203,18 @@ export function Stats({ data, currentWeekKey }: Readonly<StatsProps>) {
       {/* Habits vs Mood */}
       <motion.div {...fadeUp(0.4, still)} className="glass" style={{ marginBottom: 12 }}>
         <BlockHeader>{t('stats.habitsAndMood')}</BlockHeader>
-        <HabitMoodChart data={data} />
+        <HabitMoodChart data={data} onExpand={() => setMoodModalOpen(true)} />
       </motion.div>
+
+      {moodModalOpen && (
+        <MoodDetailModal
+          data={data}
+          onClose={() => setMoodModalOpen(false)}
+          onAddPeriod={onAddPeriod}
+          onUpdatePeriod={onUpdatePeriod}
+          onDeletePeriod={onDeletePeriod}
+        />
+      )}
 
       {/* Habit streaks grid */}
       <motion.div {...fadeUp(0.5, still)} className="glass" style={{ }}>

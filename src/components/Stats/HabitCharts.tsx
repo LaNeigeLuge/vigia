@@ -2,77 +2,22 @@ import { useMemo, useState } from 'react';
 import {
   ComposedChart, Area, Line, Bar, BarChart, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, LabelList,
+  ResponsiveContainer, ReferenceLine, ReferenceArea, LabelList,
 } from 'recharts';
 import { heatColor } from './heatColor';
 import { shade, defId } from '../../utils/color';
-import { centeredAvg } from './smooth';
 import { useLang } from '../../i18n';
-import type { AppData, Habit, MoodValue } from '../../types';
+import type { AppData, Habit, LifePeriod } from '../../types';
 import { addDays, formatDayKey, parseDayKey, getWeekStart } from '../../utils/dateUtils';
 import { useTheme } from '../../ThemeContext';
-import type { ThemeTokens } from '../../theme';
+import {
+  useChartData, useCmpData, sharedXAxis, PANE_MARGIN, AXIS_W,
+  type CmpPoint,
+} from './moodChartShared';
+import { packLanes, periodColor } from './periodHelpers';
 
 /** Gradient ids derive from the colour, so bars of one tier share a single def. */
 const gradId = (c: string) => defId('clay', c);
-
-interface ChartPoint {
-  label: string;
-  dayKey: string;
-  pct: number;
-  rolling: number;
-  mood: MoodValue | null;
-}
-
-function useChartData(data: AppData): ChartPoint[] {
-  return useMemo(() => {
-    if (data.habits.length === 0) return [];
-
-    // Find earliest date across habits and moods
-    let earliest = formatDayKey(new Date());
-    for (const habit of data.habits) {
-      for (const d of Object.keys(habit.completions)) {
-        if (d < earliest) earliest = d;
-      }
-    }
-    for (const d of Object.keys(data.moods)) {
-      if (d < earliest) earliest = d;
-    }
-
-    // Build daily array from earliest to today
-    const days: string[] = [];
-    let cursor = parseDayKey(earliest);
-    const todayKey = formatDayKey(new Date());
-    while (formatDayKey(cursor) <= todayKey) {
-      days.push(formatDayKey(cursor));
-      cursor = addDays(cursor, 1);
-    }
-
-    const total = data.habits.length;
-
-    return days.map((dayKey, i) => {
-      const done = data.habits.filter((h) => !!h.completions[dayKey]).length;
-      const pct  = Math.round((done / total) * 100);
-
-      // 7-day rolling average (inclusive)
-      const winStart = Math.max(0, i - 6);
-      let sum = 0;
-      for (let j = winStart; j <= i; j++) {
-        const wd = data.habits.filter((h) => !!h.completions[days[j]]).length;
-        sum += (wd / total) * 100;
-      }
-      const rolling = Math.round(sum / (i - winStart + 1));
-
-      return {
-        label:  dayKey.slice(5).replace('-', '/'),
-        dayKey,
-        pct,
-        rolling,
-        mood: (data.moods[dayKey] ?? null) as MoodValue | null,
-      };
-    });
-  }, [data.habits, data.moods]);
-}
 
 // ─── Chart 1: daily score + 7-day rolling average ────────────────────────────
 
@@ -448,59 +393,34 @@ function Legend({ items, block = false }: Readonly<{
 // The `cmp` prefix on the helpers below is a leftover from the three candidates
 // this was chosen among; it means nothing now beyond "belongs to this chart".
 
-const CMP_WINDOW = 7;
-
-interface MoodChartProps { data: AppData }
-
-/** Identical margins and y-axis width on every pane — that, and nothing else, is
- *  what keeps the stacked panes and the ribbon aligned on the same day. */
-const PANE_MARGIN = { top: 6, right: 12, bottom: 0, left: 0 };
-const AXIS_W = 40;
-
-interface CmpPoint extends ChartPoint { rawPct: number; rawMood: number | null }
-
-function useCmpData(data: AppData) {
-  const points = useChartData(data);
-  return useMemo(() => {
-    const pcts  = centeredAvg(points.map((p) => p.pct),  CMP_WINDOW);
-    const moods = centeredAvg(points.map((p) => p.mood), CMP_WINDOW);
-    const logged = points.map((p) => p.mood).filter((m): m is MoodValue => m != null);
-    const baseline = logged.length
-      ? Math.round((logged.reduce((s, m) => s + m, 0) / logged.length) * 10) / 10
-      : 3;
-    const rows: CmpPoint[] = points.map((p, i) => ({
-      ...p,
-      rawPct: p.pct,
-      rawMood: p.mood,
-      pct: pcts[i] ?? 0,
-      mood: moods[i] as MoodValue | null,
-    }));
-    return { rows, baseline };
-  }, [points]);
-}
-
-function sharedXAxis(rows: CmpPoint[], T: ThemeTokens, visible: boolean) {
-  return (
-    <XAxis
-      dataKey="label"
-      height={visible ? 18 : 0}
-      tick={visible ? { fontSize: 9, fill: T.textMuted, fontFamily: 'DM Sans' } : false}
-      axisLine={false} tickLine={false}
-      interval={Math.max(1, Math.floor(rows.length / 6))}
-    />
-  );
+interface MoodChartProps {
+  data: AppData;
+  /** Taller panes for the expanded modal view. */
+  big?: boolean;
+  /** Small card only: clicking anywhere opens the expanded modal. */
+  onExpand?: () => void;
+  /** Expanded modal only: clicking a point on the mood pane feeds period selection. */
+  onPointClick?: (dayKey: string) => void;
+  /** The first anchor of a not-yet-confirmed period, drawn as a marker line. */
+  pendingStart?: string | null;
+  /** A confirmed [start, end] pair still being named, drawn as a shaded band. */
+  pendingRange?: [string, string] | null;
+  /** Named periods, annotated directly on the mood pane as brackets. */
+  periods?: LifePeriod[];
 }
 
 /** The habits pane, identical in all three variants: smoothed area, raw as a ghost. */
-function HabitsPane({ rows, showX, gid }: Readonly<{
+function HabitsPane({ rows, showX, gid, big }: Readonly<{
   rows: CmpPoint[]; showX: boolean;
   /* Unique per variant: three panes render at once, and url(#id) resolves on the
      first match in the document, not the enclosing <svg>. */
   gid: string;
+  big?: boolean;
 }>) {
   const { T } = useTheme();
+  const base = showX ? 118 : 100;
   return (
-    <ResponsiveContainer width="100%" height={showX ? 118 : 100}>
+    <ResponsiveContainer width="100%" height={big ? base * 1.8 : base}>
       <ComposedChart data={rows} margin={PANE_MARGIN}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
@@ -527,10 +447,16 @@ function HabitsPane({ rows, showX, gid }: Readonly<{
   );
 }
 
-export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
+export function HabitMoodChart({
+  data, big, onExpand, onPointClick, pendingStart, pendingRange, periods,
+}: Readonly<MoodChartProps>) {
   const { T } = useTheme();
   const { t } = useLang();
   const { rows, baseline } = useCmpData(data);
+  // Touch has no hover: a finger held down and dragged previews the date
+  // underneath (this line) before lifting commits it, same job a mouse hover
+  // + click does for free.
+  const [scrubDayKey, setScrubDayKey] = useState<string | null>(null);
   if (rows.length === 0) return <Empty />;
 
   // A symmetric domain puts zero at exactly half height, which is why the
@@ -539,16 +465,97 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
   const span = Math.max(0.5, ...devs.map((d) => Math.abs(d ?? 0)));
   const shown = rows.map((r, i) => ({ ...r, dev: devs[i] }));
 
+  // recharts represents activeIndex as a string ("12") or null, never a number
+  // — Number(null) is 0, so null has to be rejected before the conversion.
+  const dayKeyFromChartState = (state: { activeIndex: unknown }) => {
+    const idx = state.activeIndex;
+    if (idx == null) return undefined;
+    const i = Number(idx);
+    return Number.isFinite(i) ? shown[i]?.dayKey : undefined;
+  };
+
+  // Anchors are stored by dayKey (unique across years); the axis is categorical
+  // on `label` (just "MM/DD"), so a ReferenceLine/Area needs the matching label.
+  const labelFor = (dayKey: string) => shown.find((r) => r.dayKey === dayKey)?.label;
+  const pendingStartLabel = pendingStart ? labelFor(pendingStart) : undefined;
+  const pendingRangeLabels: [string, string] | undefined = pendingRange
+    ? [labelFor(pendingRange[0]) ?? shown[0].label, labelFor(pendingRange[1]) ?? shown[shown.length - 1].label]
+    : undefined;
+  const scrubLabel = scrubDayKey ? labelFor(scrubDayKey) : undefined;
+
+  // Periods stack as brackets from the top of the pane down, one step per
+  // lane, so overlapping periods (the whole point of the feature) get their
+  // own row instead of drawing on top of each other.
+  const periodLanes = periods?.length ? packLanes(periods) : [];
+  const periodBrackets = periodLanes.map(({ period, lane }) => ({
+    period,
+    color: periodColor(period, T),
+    x1: labelFor(period.startDay) ?? shown[0].label,
+    x2: labelFor(period.endDay) ?? shown[shown.length - 1].label,
+    y: span * (0.92 - lane * 0.16),
+  }));
+
   return (
-    <div style={{ paddingBottom: 8 }}>
+    <div
+      style={{ paddingBottom: 8, cursor: onExpand ? 'pointer' : undefined, position: 'relative' }}
+      onClick={onExpand}
+      role={onExpand ? 'button' : undefined}
+      tabIndex={onExpand ? 0 : undefined}
+      onKeyDown={onExpand ? (e) => { if (e.key === 'Enter') onExpand(); } : undefined}
+    >
+      {onExpand && (
+        <span style={{
+          position: 'absolute', top: 4, right: 10, fontSize: 10, color: T.textMuted,
+          fontFamily: 'DM Sans, sans-serif',
+        }}>
+          {t('stats.expandHint')}
+        </span>
+      )}
       <PaneLabel>{t('cmp.habitsPane')}</PaneLabel>
-      <HabitsPane rows={rows} showX={false} gid="habitPaneGrad" />
+      <HabitsPane rows={rows} showX={false} gid="habitPaneGrad" big={big} />
       <PaneLabel>{t('cmp.moodPane')}</PaneLabel>
       {/* The sentence, not the legend, is what makes this pane readable cold: a
           deviation chart is meaningless until you know what it deviates from. */}
       <Caption>{t('cmp.howToRead', { v: baseline })}</Caption>
-      <ResponsiveContainer width="100%" height={124}>
-        <ComposedChart data={shown} margin={PANE_MARGIN}>
+      <ResponsiveContainer width="100%" height={big ? 260 : 124}>
+        <ComposedChart
+          data={shown} margin={PANE_MARGIN}
+          // Chromium paints a native focus ring around a focusable <svg> that
+          // `outline: none` alone doesn't reliably suppress; -1 keeps the
+          // click-to-select interaction without making the chart a tab stop.
+          tabIndex={-1}
+          // tabIndex=-1 removes it from the Tab order but a click still
+          // focuses it (and still rings) unless the default mousedown focus
+          // behaviour itself is blocked.
+          onMouseDown={onPointClick ? (_state, event) => event.preventDefault() : undefined}
+          // recharts@3.8.1 resets its own click-computed activeIndex to 0
+          // (acknowledged TODO in their source), so a plain onClick always
+          // "selects" the first day regardless of where the mouse is. Hover
+          // tracking goes through a different, unaffected path — so mouse
+          // clicks commit whatever onMouseMove last saw, same as touch does.
+          onClick={onPointClick ? () => {
+            if (scrubDayKey) onPointClick(scrubDayKey);
+          } : undefined}
+          onMouseMove={onPointClick ? (state) => {
+            const dayKey = dayKeyFromChartState(state);
+            if (dayKey) setScrubDayKey(dayKey);
+          } : undefined}
+          onTouchMove={onPointClick ? (state) => {
+            const dayKey = dayKeyFromChartState(state);
+            if (dayKey) setScrubDayKey(dayKey);
+          } : undefined}
+          onTouchEnd={onPointClick ? (state, event) => {
+            const dayKey = scrubDayKey ?? dayKeyFromChartState(state);
+            setScrubDayKey(null);
+            if (dayKey) {
+              // Suppresses the emulated click mobile browsers fire ~300ms
+              // after touchend — without this, one tap would select twice.
+              event.preventDefault();
+              onPointClick(dayKey);
+            }
+          } : undefined}
+          style={onPointClick ? { cursor: 'crosshair', touchAction: 'none' } : undefined}
+        >
           <defs>
             <linearGradient id="cmpDev" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor={T.moodHigh} stopOpacity={0.38} />
@@ -575,6 +582,15 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
               fill: T.textMuted, fontSize: 9, fontFamily: 'DM Sans, sans-serif',
             }}
           />
+          {scrubLabel && (
+            <ReferenceLine x={scrubLabel} stroke={T.textMuted} strokeWidth={1.5} strokeDasharray="2 2" />
+          )}
+          {pendingStartLabel && (
+            <ReferenceLine x={pendingStartLabel} stroke={T.aqua} strokeWidth={2} strokeDasharray="4 3" />
+          )}
+          {pendingRangeLabels && (
+            <ReferenceArea x1={pendingRangeLabels[0]} x2={pendingRangeLabels[1]} fill={T.aqua} fillOpacity={0.16} />
+          )}
           <Tooltip content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null;
             const p = payload[0].payload as CmpPoint & { dev: number | null };
@@ -588,6 +604,21 @@ export function HabitMoodChart({ data }: Readonly<MoodChartProps>) {
           }} />
           <Area dataKey="dev" stroke={T.textMuted} strokeWidth={1.5} strokeOpacity={0.55}
                 fill="url(#cmpDev)" dot={false} activeDot={false} />
+          {periodBrackets.map(({ period, color, x1, x2, y }) => (
+            <ReferenceLine
+              key={period.id}
+              segment={[{ x: x1, y }, { x: x2, y }]}
+              stroke={color} strokeWidth={2} ifOverflow="visible"
+              label={{
+                value: period.name, position: 'top', fill: color,
+                fontSize: 12, fontWeight: 700, fontFamily: 'Syne, sans-serif',
+              }}
+            />
+          ))}
+          {periodBrackets.flatMap(({ period, color, x1, x2 }) => [
+            <ReferenceLine key={`${period.id}-start`} x={x1} stroke={color} strokeOpacity={0.6} strokeDasharray="4 3" />,
+            <ReferenceLine key={`${period.id}-end`} x={x2} stroke={color} strokeOpacity={0.6} strokeDasharray="4 3" />,
+          ])}
         </ComposedChart>
       </ResponsiveContainer>
       <Legend block items={[

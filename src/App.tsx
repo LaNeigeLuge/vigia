@@ -99,6 +99,7 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
+    handleAddPeriod, handleUpdatePeriod, handleDeletePeriod,
   } = useAppData(userId);
 
   const toggleTask = (weekKey: string, taskId: string) => {
@@ -221,7 +222,14 @@ function AppInner({ userId, userEmail, onSignOut }: Readonly<AppInnerProps>) {
                 onDeleteHabit={handleDeleteHabit} onToggleHabit={handleToggleHabit}
               />
             )}
-            {activeSection === 'stats' && <Stats data={data} currentWeekKey={currentWeekKey} />}
+            {activeSection === 'stats' && (
+              <Stats
+                data={data} currentWeekKey={currentWeekKey}
+                onAddPeriod={handleAddPeriod}
+                onUpdatePeriod={handleUpdatePeriod}
+                onDeletePeriod={handleDeletePeriod}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

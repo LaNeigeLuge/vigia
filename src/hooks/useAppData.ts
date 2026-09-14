@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppData, EmotionId, EmotionSlot, MoodValue } from '../types';
+import type { AppData, EmotionId, EmotionSlot, LifePeriod, MoodValue, PeriodCategory } from '../types';
 import {
   loadAllData,
   dbAddTask, dbUpdateTask, dbDeleteTask,
@@ -7,8 +7,9 @@ import {
   dbCheckHabitLog, dbUncheckHabitLog,
   dbSetMood, dbSetCheckin,
   dbAddTodo, dbToggleTodo, dbDeleteTodo,
+  dbAddPeriod, dbUpdatePeriod, dbDeletePeriod,
 } from '../lib/db';
-import { updateTask, deleteTask, addHabit, updateHabit, deleteHabit, toggleHabit, createDefaultAppData } from '../utils/dataUtils';
+import { updateTask, deleteTask, addHabit, updateHabit, deleteHabit, toggleHabit, addPeriod, updatePeriod, deletePeriod, createDefaultAppData } from '../utils/dataUtils';
 import { getWeekStartKey } from '../utils/dateUtils';
 
 const EMPTY: AppData = createDefaultAppData();
@@ -151,11 +152,36 @@ export function useAppData(userId: string) {
     dbDeleteTodo(todoId).catch(handleWriteError);
   }, [handleWriteError]);
 
+  // ─── Life periods ───────────────────────────────────────────────────────────
+
+  const handleAddPeriod = useCallback(
+    (name: string, startDay: string, endDay: string, category: PeriodCategory) => {
+      dbAddPeriod(userId, name, startDay, endDay, category)
+        .then((period) => setData((d) => addPeriod(d, period)))
+        .catch(handleWriteError);
+    },
+    [userId, handleWriteError],
+  );
+
+  const handleUpdatePeriod = useCallback(
+    (periodId: string, changes: Partial<Pick<LifePeriod, 'name' | 'startDay' | 'endDay' | 'category'>>) => {
+      setData((d) => updatePeriod(d, periodId, changes));
+      dbUpdatePeriod(periodId, changes).catch(handleWriteError);
+    },
+    [handleWriteError],
+  );
+
+  const handleDeletePeriod = useCallback((periodId: string) => {
+    setData((d) => deletePeriod(d, periodId));
+    dbDeletePeriod(periodId).catch(handleWriteError);
+  }, [handleWriteError]);
+
   return {
     data, loading, error, currentWeekKey,
     handleAddTask, handleUpdateTask, handleDeleteTask, handleMigrateTask,
     handleAddHabit, handleUpdateHabitName, handleDeleteHabit, handleToggleHabit,
     handleSetMood, handleSetCheckin,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
+    handleAddPeriod, handleUpdatePeriod, handleDeletePeriod,
   };
 }
