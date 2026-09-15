@@ -1,4 +1,4 @@
-import type { AppData, Habit, LifePeriod, Task } from '../types';
+import type { AppData, Habit, LifePeriod, Task, WeekData } from '../types';
 import { formatDayKey, getWeekDays, getWeekStart, parseDayKey } from './dateUtils';
 import { addDays } from 'date-fns';
 
@@ -128,6 +128,35 @@ export function getHabitStreak(habit: Habit, asOf: Date = new Date()): number {
     }
   }
   return streak;
+}
+
+/**
+ * Best completed-task count across every logged week. Shared by the initial
+ * `loadAllData` snapshot and Stats' live re-render — `data.allTimeStats`
+ * itself is only ever refreshed by a full reload, so anything shown from it
+ * mid-session (after a task gets checked off) has to be recomputed here
+ * instead, not read off that stale snapshot.
+ */
+export function getBestWeek(weeks: Record<string, WeekData>, fallbackWeekKey: string): { count: number; weekStart: string } {
+  let count = 0;
+  let weekStart = fallbackWeekKey;
+  for (const [key, week] of Object.entries(weeks)) {
+    const done = week.tasks.filter((t) => t.completed).length;
+    if (done > count) { count = done; weekStart = key; }
+  }
+  return { count, weekStart };
+}
+
+/** Same staleness reasoning as `getBestWeek` — habit streaks change every
+ *  time a box is checked, `data.allTimeStats.longestHabitStreak` doesn't. */
+export function getLongestHabitStreak(habits: Habit[]): { streak: number; name: string } {
+  let streak = 0;
+  let name = '';
+  for (const habit of habits) {
+    const s = getHabitStreak(habit);
+    if (s > streak) { streak = s; name = habit.name; }
+  }
+  return { streak, name };
 }
 
 export function getHabitWeekCompletion(habit: Habit, weekKey: string): { done: number; total: number } {

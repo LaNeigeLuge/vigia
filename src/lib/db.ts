@@ -7,7 +7,7 @@
 import { supabase } from './supabase';
 import type { AppData, EmotionId, EmotionSlot, Habit, LifePeriod, MoodValue, PeriodCategory, Task, Todo } from '../types';
 import { getWeekStartKey } from '../utils/dateUtils';
-import { getHabitStreak } from '../utils/dataUtils';
+import { getBestWeek, getLongestHabitStreak } from '../utils/dataUtils';
 
 function generateId(): string {
   // Prefer a collision-resistant UUID; fall back for older runtimes.
@@ -96,20 +96,8 @@ export async function loadAllData(userId: string): Promise<AppData> {
   // Compute allTimeStats
   const allTasks = Object.values(weeks).flatMap((w) => w.tasks);
   const totalTasksCompleted = allTasks.filter((t) => t.completed).length;
-
-  let bestWeekCount = 0;
-  let bestWeekStart = currentWeekKey;
-  for (const [key, week] of Object.entries(weeks)) {
-    const count = week.tasks.filter((t) => t.completed).length;
-    if (count > bestWeekCount) { bestWeekCount = count; bestWeekStart = key; }
-  }
-
-  let longestHabitStreak = 0;
-  let longestHabitName   = '';
-  for (const habit of habits) {
-    const streak = getHabitStreak(habit);
-    if (streak > longestHabitStreak) { longestHabitStreak = streak; longestHabitName = habit.name; }
-  }
+  const { count: bestWeekCount, weekStart: bestWeekStart } = getBestWeek(weeks, currentWeekKey);
+  const { streak: longestHabitStreak, name: longestHabitName } = getLongestHabitStreak(habits);
 
   const emotionalCheckins: AppData['emotionalCheckins'] = {};
   for (const row of checkinsRes.data ?? []) {

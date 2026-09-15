@@ -5,7 +5,7 @@ import {
   formatDayKey, getWeekDays, parseDayKey,
 } from '../../utils/dateUtils';
 import {
-  getDayCompletionRate, getDayLevel, getHabitStreak, getWeekCompletionRate,
+  getBestWeek, getDayCompletionRate, getDayLevel, getHabitStreak, getLongestHabitStreak, getWeekCompletionRate,
 } from '../../utils/dataUtils';
 import type { DayLevelTier } from '../../utils/dataUtils';
 import { useTheme } from '../../ThemeContext';
@@ -97,6 +97,17 @@ export function Stats({ data, currentWeekKey, onAddPeriod, onUpdatePeriod, onDel
   const weekStart = parseDayKey(currentWeekKey);
   const weekDays = getWeekDays(weekStart);
 
+  // data.allTimeStats is a load-time snapshot that never refreshes as tasks
+  // or habits are checked off this session — recomputed live here instead of
+  // trusting it, so "best week" and "longest streak" don't sit stale until
+  // the next full reload.
+  const { count: bestWeekCount } = useMemo(
+    () => getBestWeek(data.weeks, currentWeekKey), [data.weeks, currentWeekKey],
+  );
+  const { streak: longestHabitStreak, name: longestHabitName } = useMemo(
+    () => getLongestHabitStreak(data.habits), [data.habits],
+  );
+
   const dayRows = useMemo(() => weekDays.map((day) => {
     const dayKey = formatDayKey(day);
     const { done, total } = getDayCompletionRate(data, currentWeekKey, dayKey);
@@ -133,14 +144,14 @@ export function Stats({ data, currentWeekKey, onAddPeriod, onUpdatePeriod, onDel
           sub={`Avant : ${lastPct}% (${lastDone}/${lastTotal})`}
           accent={deltaAccent}
         />
-        <BigStat label={t('stats.bestWeek')} value={data.allTimeStats.bestWeekCount || '—'} sub={t('stats.tasksInAWeek')} accent={T.amber} />
+        <BigStat label={t('stats.bestWeek')} value={bestWeekCount || '—'} sub={t('stats.tasksInAWeek')} accent={T.amber} />
         <BigStat label={t('stats.allTime')} value={data.allTimeStats.totalTasksCompleted} sub={t('stats.tasksDoneSub')} accent={T.sage} />
         <BigStat
           label={t('stats.longestStreak')}
-          value={data.allTimeStats.longestHabitStreak > 0
-            ? <><Flame size={24} /> {data.allTimeStats.longestHabitStreak}</>
+          value={longestHabitStreak > 0
+            ? <><Flame size={24} /> {longestHabitStreak}</>
             : '—'}
-          sub={data.allTimeStats.longestHabitName || t('common.days')}
+          sub={longestHabitName || t('common.days')}
           accent={T.aqua}
         />
       </motion.div>
