@@ -158,6 +158,9 @@ export function AuthPage({ onSignIn, onSignUp }: Readonly<AuthPageProps>) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              // Only enforced on sign-up — an existing account's real password
+              // must never be rejected client-side just for being short.
+              minLength={mode === 'login' ? undefined : 8}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               placeholder="••••••••"
               style={inputStyle}

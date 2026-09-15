@@ -139,12 +139,10 @@ export function useAppData(userId: string) {
   }, [userId, handleWriteError]);
 
   const handleToggleTodo = useCallback((todoId: string) => {
-    setData((d) => {
-      const todo = d.todos.find((t) => t.id === todoId);
-      if (!todo) return d;
-      dbToggleTodo(todoId, !todo.completed).catch(handleWriteError);
-      return { ...d, todos: d.todos.map((t) => t.id === todoId ? { ...t, completed: !t.completed } : t) };
-    });
+    const todo = dataRef.current.todos.find((t) => t.id === todoId);
+    if (!todo) return;
+    setData((d) => ({ ...d, todos: d.todos.map((t) => t.id === todoId ? { ...t, completed: !t.completed } : t) }));
+    dbToggleTodo(todoId, !todo.completed).catch(handleWriteError);
   }, [handleWriteError]);
 
   const handleDeleteTodo = useCallback((todoId: string) => {

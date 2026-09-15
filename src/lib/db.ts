@@ -2,17 +2,18 @@
  * Supabase DB layer.
  * All write functions require userId (auth.uid()) to satisfy RLS policies.
  *
- * Tables: tasks, habits, habit_logs  (see supabase/schema.sql)
+ * Tables: tasks, habits, habit_logs, todos, mood_logs, emotional_checkins,
+ * life_periods (see supabase/schema.sql)
  */
 import { supabase } from './supabase';
 import type { AppData, EmotionId, EmotionSlot, Habit, LifePeriod, MoodValue, PeriodCategory, Task, Todo } from '../types';
 import { getWeekStartKey } from '../utils/dateUtils';
-import { getBestWeek, getLongestHabitStreak } from '../utils/dataUtils';
 
+// crypto.randomUUID needs a secure context, which every deploy target here
+// (Vercel HTTPS, or localhost for dev) already is — no non-cryptographic
+// fallback worth the collision risk on a value used as a primary key.
 function generateId(): string {
-  // Prefer a collision-resistant UUID; fall back for older runtimes.
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 /**
@@ -93,11 +94,8 @@ export async function loadAllData(userId: string): Promise<AppData> {
     createdAt:   row.created_at as string,
   }));
 
-  // Compute allTimeStats
   const allTasks = Object.values(weeks).flatMap((w) => w.tasks);
   const totalTasksCompleted = allTasks.filter((t) => t.completed).length;
-  const { count: bestWeekCount, weekStart: bestWeekStart } = getBestWeek(weeks, currentWeekKey);
-  const { streak: longestHabitStreak, name: longestHabitName } = getLongestHabitStreak(habits);
 
   const emotionalCheckins: AppData['emotionalCheckins'] = {};
   for (const row of checkinsRes.data ?? []) {
@@ -116,7 +114,7 @@ export async function loadAllData(userId: string): Promise<AppData> {
     category:  (row.category as PeriodCategory | null) ?? 'other',
   }));
 
-  return { weeks, habits, todos, moods, emotionalCheckins, lifePeriods, allTimeStats: { totalTasksCompleted, bestWeekCount, bestWeekStart, longestHabitStreak, longestHabitName } };
+  return { weeks, habits, todos, moods, emotionalCheckins, lifePeriods, allTimeStats: { totalTasksCompleted } };
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────

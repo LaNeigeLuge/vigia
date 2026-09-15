@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import type { AppData, Habit } from '../types';
+import type { AppData, Habit, WeekData } from '../types';
 import {
   createDefaultAppData,
   getWeekCompletionRate,
   getDayLevel,
   getHabitStreak,
   getHabitWeekCompletion,
+  getBestWeek,
+  getLongestHabitStreak,
   updateTask,
   deleteTask,
   toggleHabit,
@@ -136,6 +138,46 @@ describe('getHabitWeekCompletion', () => {
       completions: { '2026-06-29': true, '2026-06-30': true, '2026-08-01': true },
     };
     expect(getHabitWeekCompletion(habit, WEEK)).toEqual({ done: 2, total: 7 });
+  });
+});
+
+describe('getBestWeek', () => {
+  const weeks: Record<string, WeekData> = {
+    '2026-06-15': { weekStart: '2026-06-15', tasks: [
+      { id: 't1', text: 'a', completed: true, dayKey: '2026-06-15', weekStart: '2026-06-15', migratedTo: null },
+    ] },
+    '2026-06-22': { weekStart: '2026-06-22', tasks: [
+      { id: 't2', text: 'a', completed: true, dayKey: '2026-06-22', weekStart: '2026-06-22', migratedTo: null },
+      { id: 't3', text: 'b', completed: true, dayKey: '2026-06-22', weekStart: '2026-06-22', migratedTo: null },
+    ] },
+  };
+
+  it('picks the week with the most completed tasks', () => {
+    expect(getBestWeek(weeks, '2026-06-22')).toEqual({ count: 2, weekStart: '2026-06-22' });
+  });
+
+  it('falls back to the given week when nothing is completed anywhere', () => {
+    const empty: Record<string, WeekData> = { '2026-06-15': { weekStart: '2026-06-15', tasks: [] } };
+    expect(getBestWeek(empty, '2026-06-22')).toEqual({ count: 0, weekStart: '2026-06-22' });
+  });
+});
+
+describe('getLongestHabitStreak', () => {
+  it('returns the streak and name of the longest-running habit', () => {
+    const short: Habit = {
+      id: 'h1', name: 'Short', createdAt: '2026-06-01T00:00:00.000Z',
+      completions: { '2026-06-30': true },
+    };
+    const long: Habit = {
+      id: 'h2', name: 'Long', createdAt: '2026-06-01T00:00:00.000Z',
+      completions: { '2026-06-30': true, '2026-06-29': true, '2026-06-28': true },
+    };
+    const asOf = new Date('2026-06-30T12:00:00');
+    expect(getLongestHabitStreak([short, long], asOf)).toEqual({ streak: 3, name: 'Long' });
+  });
+
+  it('is zero-streak/empty-name with no habits', () => {
+    expect(getLongestHabitStreak([], new Date('2026-06-30T12:00:00'))).toEqual({ streak: 0, name: '' });
   });
 });
 

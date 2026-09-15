@@ -17,6 +17,10 @@
   On a phone, add it to your home screen and it works offline.
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/demo-mobile.gif" alt="vigia demo on a phone" width="280">
+</p>
+
 ---
 
 ## Today
@@ -145,17 +149,18 @@ supabase/schema.sql        Schema with row-level security
 
 ### Data
 
-| Type          | Fields                                                 |
-| ------------- | ------------------------------------------------------ |
-| `Task`        | id, text, completed, dayKey, weekStart, migratedTo     |
-| `Habit`       | id, name, completions (day map), createdAt             |
-| `Todo`        | id, text, completed, createdAt                         |
-| `MoodValue`   | 1 to 5                                                 |
-| `EmotionSlot` | `matin`, `apresmidi`, `soir`                           |
-| `EmotionId`   | 16 values                                              |
+| Type          | Fields                                                            |
+| ------------- | ----------------------------------------------------------------- |
+| `Task`        | id, text, completed, dayKey, weekStart, migratedTo                |
+| `Habit`       | id, name, completions (day map), createdAt                        |
+| `Todo`        | id, text, completed, createdAt                                    |
+| `MoodValue`   | 1 to 5                                                            |
+| `EmotionSlot` | `matin`, `apresmidi`, `soir`                                      |
+| `EmotionId`   | 16 values                                                         |
+| `LifePeriod`  | id, name, startDay, endDay, category (travel/difficult/arc/other) |
 
-Six tables in Supabase — `tasks`, `habits`, `habit_logs`, `todos`, `mood_logs`,
-`emotional_checkins` — each with row-level security tying every row to its owner.
+Seven tables in Supabase — `tasks`, `habits`, `habit_logs`, `todos`, `mood_logs`,
+`emotional_checkins`, `life_periods` — each with row-level security tying every row to its owner.
 
 ## Deploying
 

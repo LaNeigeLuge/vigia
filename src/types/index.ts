@@ -61,12 +61,16 @@ export interface AppData {
   moods: Record<string, MoodValue>;
   emotionalCheckins: Record<string, Partial<Record<EmotionSlot, EmotionId>>>;
   lifePeriods: LifePeriod[];
+  /**
+   * Only totalTasksCompleted lives here — it's the one figure with an
+   * incremental update path (see `updateTask`). "Best week" and "longest
+   * streak" used to live here too but were a load-time snapshot nothing kept
+   * fresh after a habit/task changed locally; they're now plain derived
+   * values computed on read (`getBestWeek`, `getLongestHabitStreak` in
+   * dataUtils.ts) instead of stored state that can go stale.
+   */
   allTimeStats: {
     totalTasksCompleted: number;
-    bestWeekCount: number;
-    bestWeekStart: string;
-    longestHabitStreak: number;
-    longestHabitName: string;
   };
 }
 

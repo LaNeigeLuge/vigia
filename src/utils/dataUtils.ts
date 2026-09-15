@@ -40,10 +40,6 @@ export function createDefaultAppData(): AppData {
     lifePeriods: [],
     allTimeStats: {
       totalTasksCompleted: 0,
-      bestWeekCount: 0,
-      bestWeekStart: weekKey,
-      longestHabitStreak: 0,
-      longestHabitName: '',
     },
   };
 }
@@ -131,11 +127,10 @@ export function getHabitStreak(habit: Habit, asOf: Date = new Date()): number {
 }
 
 /**
- * Best completed-task count across every logged week. Shared by the initial
- * `loadAllData` snapshot and Stats' live re-render — `data.allTimeStats`
- * itself is only ever refreshed by a full reload, so anything shown from it
- * mid-session (after a task gets checked off) has to be recomputed here
- * instead, not read off that stale snapshot.
+ * Best completed-task count across every logged week. Deliberately not
+ * stored on AppData: a task getting checked off mid-session would need to
+ * bump it too, on top of the one `updateTask` already does for
+ * `totalTasksCompleted` — a derived value computed on read can't go stale.
  */
 export function getBestWeek(weeks: Record<string, WeekData>, fallbackWeekKey: string): { count: number; weekStart: string } {
   let count = 0;
@@ -147,13 +142,13 @@ export function getBestWeek(weeks: Record<string, WeekData>, fallbackWeekKey: st
   return { count, weekStart };
 }
 
-/** Same staleness reasoning as `getBestWeek` — habit streaks change every
- *  time a box is checked, `data.allTimeStats.longestHabitStreak` doesn't. */
-export function getLongestHabitStreak(habits: Habit[]): { streak: number; name: string } {
+/** Same reasoning as `getBestWeek` — a streak changes every time a habit box
+ *  is checked, so it's computed on read rather than stored and kept in sync. */
+export function getLongestHabitStreak(habits: Habit[], asOf: Date = new Date()): { streak: number; name: string } {
   let streak = 0;
   let name = '';
   for (const habit of habits) {
-    const s = getHabitStreak(habit);
+    const s = getHabitStreak(habit, asOf);
     if (s > streak) { streak = s; name = habit.name; }
   }
   return { streak, name };

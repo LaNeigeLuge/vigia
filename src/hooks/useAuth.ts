@@ -44,6 +44,12 @@ export function useAuth(): AuthState & AuthActions {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // The PWA's runtime cache (vite.config.ts: 'supabase-api-cache') keeps
+    // GET responses — tasks, habits, moods, journal text — around for its TTL
+    // regardless of auth state. On a shared device the next person to sign in
+    // would otherwise still be able to read the previous user's data straight
+    // out of Cache Storage until it expires.
+    try { await caches.delete('supabase-api-cache'); } catch { /* Cache Storage unavailable */ }
   };
 
   return { session, loading, signIn, signUp, signOut };

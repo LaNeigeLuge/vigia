@@ -78,15 +78,25 @@ export interface CmpPoint extends ChartPoint { rawPct: number; rawMood: number |
 export const PANE_MARGIN = { top: 6, right: 12, bottom: 0, left: 0 };
 export const AXIS_W = 40;
 
+/** The neutral middle of the 1–5 mood scale — used when nothing's been
+ *  logged yet, so the deviation pane has a baseline to draw before there's
+ *  any real average to compute one from. */
+const NEUTRAL_BASELINE = 3;
+
+/** Exported on its own so the no-mood-logged fallback is a unit-testable
+ *  branch, not just a line inside a memoized hook. */
+export function computeBaseline(points: ChartPoint[]): number {
+  const logged = points.map((p) => p.mood).filter((m): m is MoodValue => m != null);
+  if (logged.length === 0) return NEUTRAL_BASELINE;
+  return Math.round((logged.reduce((s, m) => s + m, 0) / logged.length) * 10) / 10;
+}
+
 export function useCmpData(data: AppData) {
   const points = useChartData(data);
   return useMemo(() => {
     const pcts  = centeredAvg(points.map((p) => p.pct),  CMP_WINDOW);
     const moods = centeredAvg(points.map((p) => p.mood), CMP_WINDOW);
-    const logged = points.map((p) => p.mood).filter((m): m is MoodValue => m != null);
-    const baseline = logged.length
-      ? Math.round((logged.reduce((s, m) => s + m, 0) / logged.length) * 10) / 10
-      : 3;
+    const baseline = computeBaseline(points);
     const rows: CmpPoint[] = points.map((p, i) => ({
       ...p,
       rawPct: p.pct,
