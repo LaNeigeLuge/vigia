@@ -6,6 +6,7 @@
  * life_periods (see supabase/schema.sql)
  */
 import { supabase } from './supabase';
+import { selectAll } from './selectAll';
 import type { AppData, EmotionId, EmotionSlot, Habit, LifePeriod, MoodValue, PeriodCategory, Task, Todo } from '../types';
 import { getWeekStartKey } from '../utils/dateUtils';
 
@@ -30,13 +31,21 @@ function throwOnError(error: { message: string } | null, label: string): void {
 // ─── Load ─────────────────────────────────────────────────────────────────────
 
 export async function loadAllData(userId: string): Promise<AppData> {
+  // Tables that grow every day go through selectAll (see why there); each order
+  // ends on the primary key so pages are stable. habits and life_periods are
+  // hand-made lists that will never approach 1000 rows.
   const [tasksRes, habitsRes, logsRes, moodsRes, todosRes, checkinsRes, periodsRes] = await Promise.all([
-    supabase.from('tasks').select('*').eq('user_id', userId).order('created_at'),
+    selectAll((from, to) => supabase.from('tasks').select('*').eq('user_id', userId)
+      .order('created_at').order('id').range(from, to)),
     supabase.from('habits').select('*').eq('user_id', userId).order('sort_order, created_at'),
-    supabase.from('habit_logs').select('*').eq('user_id', userId),
-    supabase.from('mood_logs').select('day_key, mood').eq('user_id', userId),
-    supabase.from('todos').select('*').eq('user_id', userId).order('created_at'),
-    supabase.from('emotional_checkins').select('day_key, slot, emotion').eq('user_id', userId),
+    selectAll((from, to) => supabase.from('habit_logs').select('*').eq('user_id', userId)
+      .order('habit_id').order('day_key').range(from, to)),
+    selectAll((from, to) => supabase.from('mood_logs').select('day_key, mood').eq('user_id', userId)
+      .order('day_key').range(from, to)),
+    selectAll((from, to) => supabase.from('todos').select('*').eq('user_id', userId)
+      .order('created_at').order('id').range(from, to)),
+    selectAll((from, to) => supabase.from('emotional_checkins').select('day_key, slot, emotion').eq('user_id', userId)
+      .order('day_key').order('slot').range(from, to)),
     supabase.from('life_periods').select('id, name, start_day, end_day, category').eq('user_id', userId).order('start_day'),
   ]);
 
